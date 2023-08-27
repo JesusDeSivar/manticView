@@ -24,3 +24,10 @@ body, button{
 .button:hover{
   background:hwb(222 15% 80%)
 }
+/* HTML */
+.footer-copyright{
+  flex:none;
+  width:100%;
+  display:inline-flex;
+  justify-content:center
+}
