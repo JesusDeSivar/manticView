@@ -158,8 +158,15 @@ header,section,footer{
   background:hwb(218 8% 89%);
   overflow:hidden;
   background-image:url("../img/cta-illustration.svg");
-  background-repeat:no-repeat
+  background-repeat:no-repeat;
+  max-width: device-width
 }
+  @media(min-width: 481px){
+    .cta-inner{
+      padding-left: 24px;
+      padding-right: 24px;
+    }
+  }
 .site-footer-inner{
   position:relative;
   display:flex;
@@ -194,7 +201,8 @@ header,section,footer{
       flex:50%
     }
     .footer-copyright{
-      justify-content:flex-start
+      justify-content:flex-start;
+      margin: 16px;
     }
     .footer-links{
       justify-content:flex-end;
@@ -213,4 +221,7 @@ header,section,footer{
 }
 .has-bottom-divider{
   position:relative
+}
+.container{
+  display: flex;
 }
