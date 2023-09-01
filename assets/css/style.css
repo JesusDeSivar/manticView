@@ -69,7 +69,7 @@ p {
 img{
   border-style:none;
   height:auto;
-  max-width:100%;
+  max-width:15%;
   vertical-align:middle
 }
 .button{
@@ -103,7 +103,7 @@ html{
   box-sizing:border-box;
 }
 body{
-  margin:0;
+  margin:10px;
   background:hwb(222 6% 84%);
   -moz-osx-font-smoothing:grayscale;
   -webkit-font-smoothing:antialiased;
