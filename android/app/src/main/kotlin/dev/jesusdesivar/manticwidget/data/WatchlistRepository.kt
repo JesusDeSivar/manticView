@@ -34,6 +34,13 @@ data class WatchedMarket(
     val answerText: String? = null,
     val isResolved: Boolean = false,
     val resolution: String? = null,
+    /**
+     * Human-readable outcome: "YES"/"NO" for binary markets, "Won"/"Lost"
+     * for the tracked answer of a multiple-choice market, "N/A" for
+     * cancelled. Raw [resolution] holds an answer ID for multi-choice
+     * markets, which is meaningless on screen.
+     */
+    val resolutionLabel: String? = null,
     /** Chronological; capped at [WatchlistRepository.HISTORY_SIZE] points. */
     val history: List<ProbPoint> = emptyList(),
     val lastUpdatedMillis: Long = 0L,
@@ -145,6 +152,7 @@ class WatchlistRepository(private val context: Context) {
             answerText = answer?.text,
             isResolved = market.isResolved,
             resolution = market.resolution,
+            resolutionLabel = resolutionLabel(market, answer?.id),
             history = seedHistory(market.slug, answer?.id) + ProbPoint(now, probability),
             lastUpdatedMillis = now,
         )
@@ -170,6 +178,9 @@ class WatchlistRepository(private val context: Context) {
                     probability = probability,
                     answerId = answer.id,
                     answerText = answer.text,
+                    isResolved = market.isResolved,
+                    resolution = market.resolution,
+                    resolutionLabel = resolutionLabel(market, answer.id),
                     history = history,
                     lastUpdatedMillis = now,
                 ) else it
@@ -206,6 +217,7 @@ class WatchlistRepository(private val context: Context) {
                     answerText = answer?.text ?: watched.answerText,
                     isResolved = market.isResolved,
                     resolution = market.resolution,
+                    resolutionLabel = resolutionLabel(market, watched.answerId),
                     history = (watched.history + ProbPoint(System.currentTimeMillis(), probability))
                         .takeLast(HISTORY_SIZE),
                     lastUpdatedMillis = System.currentTimeMillis(),
@@ -214,6 +226,22 @@ class WatchlistRepository(private val context: Context) {
             // Keep stale data on transient failures; the widget shows last-updated time.
             onFailure = { watched },
         )
+
+    /**
+     * Maps the API's resolution to something displayable. Binary markets
+     * resolve to "YES"/"NO"/"MKT"/"CANCEL"; multiple-choice markets resolve
+     * to the winning answer's ID, so translate relative to the tracked answer.
+     */
+    private fun resolutionLabel(market: Market, answerId: String?): String? {
+        val resolution = market.resolution ?: return null
+        return when {
+            resolution == "CANCEL" -> "N/A"
+            resolution == "MKT" -> "MKT"
+            answerId == null -> resolution
+            resolution == answerId -> "Won"
+            else -> "Lost"
+        }
+    }
 
     /**
      * Builds an initial history from recent bets so the sparkline and delta

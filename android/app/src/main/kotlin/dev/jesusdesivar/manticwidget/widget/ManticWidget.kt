@@ -54,6 +54,21 @@ internal fun trendColor(market: WatchedMarket): Color = when {
     else -> Neutral
 }
 
+/** Color for the headline value: outcome-colored once resolved, else trend. */
+internal fun displayColor(market: WatchedMarket): Color = when {
+    market.isResolved -> when (market.resolutionLabel) {
+        "YES", "Won" -> Up
+        "NO", "Lost" -> Down
+        else -> Neutral
+    }
+    else -> trendColor(market)
+}
+
+/** Headline value: live probability, or the outcome once resolved. */
+internal fun displayValue(market: WatchedMarket): String =
+    if (market.isResolved) market.resolutionLabel ?: "Ended"
+    else "${(market.probability * 100).roundToInt()}%"
+
 internal fun deltaLabel(market: WatchedMarket, withAnswer: Boolean = true): String {
     val trend = when {
         market.isResolved -> "Resolved"
@@ -160,7 +175,7 @@ class ManticWidget : GlanceAppWidget() {
 
     @Composable
     private fun MarketRow(market: WatchedMarket) {
-        val color = trendColor(market)
+        val color = displayColor(market)
         Row(
             modifier = GlanceModifier
                 .fillMaxWidth()
@@ -185,7 +200,7 @@ class ManticWidget : GlanceAppWidget() {
             }
             Spacer(GlanceModifier.width(8.dp))
             Text(
-                text = market.resolution ?: "${(market.probability * 100).roundToInt()}%",
+                text = displayValue(market),
                 style = TextStyle(
                     color = ColorProvider(color),
                     fontSize = 15.sp,
