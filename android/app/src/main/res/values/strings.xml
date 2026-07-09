@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Mantic View</string>
+    <string name="widget_label">Manifold watchlist</string>
+    <string name="widget_description">Track live Manifold prediction market probabilities on your home screen.</string>
+    <string name="single_widget_label">Manifold market</string>
+    <string name="single_widget_description">One Manifold market with a large probability chart.</string>
+</resources>

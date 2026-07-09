@@ -4,6 +4,8 @@ Bring [Manifold](https://manifold.markets) prediction markets directly into Goog
 
 Mantic View is a small [Google Apps Script](apps-script/Code.gs) that adds custom functions to your spreadsheet, powered by the free, no-key-required [Manifold API](https://docs.manifold.markets/api).
 
+Also in this repo: **[Mantic View for Android](android/)** — a home-screen widget with a TradingView-style watchlist of live market probabilities.
+
 ## Setup (about 1 minute)
 
 1. Open (or create) a Google Sheets spreadsheet.
