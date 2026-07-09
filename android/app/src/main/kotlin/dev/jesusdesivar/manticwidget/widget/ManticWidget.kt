@@ -65,7 +65,7 @@ class ManticWidget : GlanceAppWidget() {
                 .background(GlanceTheme.colors.widgetBackground)
                 .padding(12.dp)
         ) {
-            Header()
+            Header(lastUpdatedLabel(markets))
             Spacer(GlanceModifier.height(8.dp))
             if (markets.isEmpty()) {
                 EmptyState()
@@ -79,7 +79,7 @@ class ManticWidget : GlanceAppWidget() {
     }
 
     @Composable
-    private fun Header() {
+    private fun Header(lastUpdated: String?) {
         Row(
             modifier = GlanceModifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
@@ -91,16 +91,28 @@ class ManticWidget : GlanceAppWidget() {
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Bold,
                 ),
-                modifier = GlanceModifier
-                    .defaultWeight()
-                    .clickable(actionStartActivity<MainActivity>()),
+                modifier = GlanceModifier.clickable(actionStartActivity<MainActivity>()),
             )
+            if (lastUpdated != null) {
+                Text(
+                    text = "  · $lastUpdated",
+                    style = TextStyle(color = GlanceTheme.colors.onSurfaceVariant, fontSize = 11.sp),
+                )
+            }
+            Spacer(GlanceModifier.defaultWeight())
             Text(
                 text = "↻",
                 style = TextStyle(color = GlanceTheme.colors.primary, fontSize = 16.sp),
                 modifier = GlanceModifier.clickable(actionRunCallback<RefreshAction>()),
             )
         }
+    }
+
+    private fun lastUpdatedLabel(markets: List<WatchedMarket>): String? {
+        val newest = markets.maxOfOrNull { it.lastUpdatedMillis } ?: return null
+        if (newest == 0L) return null
+        return java.text.DateFormat.getTimeInstance(java.text.DateFormat.SHORT)
+            .format(java.util.Date(newest))
     }
 
     @Composable
@@ -143,7 +155,7 @@ class ManticWidget : GlanceAppWidget() {
             Spacer(GlanceModifier.width(8.dp))
             Image(
                 provider = ImageProvider(
-                    SparklineRenderer.render(market.history.map { it.p }, color = trendColor.toArgb())
+                    SparklineRenderer.render(market.sparkPoints().map { it.p }, color = trendColor.toArgb())
                 ),
                 contentDescription = "Probability trend",
                 modifier = GlanceModifier.size(width = 52.dp, height = 16.dp),
@@ -163,11 +175,11 @@ class ManticWidget : GlanceAppWidget() {
     private fun deltaLabel(market: WatchedMarket): String {
         val trend = when {
             market.isResolved -> "Resolved"
+            market.history.size < 2 -> "no history yet"
             else -> {
                 val points = market.delta * 100
-                val span = market.deltaSpanHours.let { if (it >= 22) "24h" else "${it}h" }
+                val span = spanLabel(market.deltaSpanHours)
                 when {
-                    market.history.size < 2 -> "no history yet"
                     abs(points) < 0.5 -> "flat · $span"
                     points > 0 -> "▲ ${points.roundToInt()} pts · $span"
                     else -> "▼ ${abs(points).roundToInt()} pts · $span"
@@ -176,6 +188,9 @@ class ManticWidget : GlanceAppWidget() {
         }
         return market.answerText?.let { "$it · $trend" } ?: trend
     }
+
+    private fun spanLabel(hours: Long): String =
+        if (hours >= 48) "${hours / 24}d" else "${hours}h"
 }
 
 private fun Color.toArgb(): Int = android.graphics.Color.argb(

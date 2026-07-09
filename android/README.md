@@ -40,11 +40,11 @@ Android budgets background work for widgets — periodic refresh below ~15–30 
 
 ## Roadmap
 
-- [ ] In-app market search (the API client already supports it)
+- [x] In-app market search
+- [x] Multi-choice market support, with a picker for which answer to track
+- [x] Per-market comparison period for delta and sparkline (1H/6H/1D/1W/1M/ALL)
 - [ ] Configurable refresh interval & per-widget watchlists
 - [ ] Resolved-market styling and auto-archive
-- [x] Multi-choice market support (tracks the top answer)
-- [ ] Choose which answer to track on multi-choice markets
 - [ ] Play Store release
 
 ## License

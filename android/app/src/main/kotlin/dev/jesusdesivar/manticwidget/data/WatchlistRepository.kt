@@ -18,7 +18,7 @@ data class ProbPoint(val t: Long, val p: Double)
 /**
  * One tracked market plus a rolling probability history for sparklines.
  * For multiple-choice markets, one answer is tracked (the top one at add
- * time) and [probability]/[history] refer to that answer.
+ * time, switchable later) and [probability]/[history] refer to that answer.
  */
 @Serializable
 data class WatchedMarket(
@@ -33,25 +33,39 @@ data class WatchedMarket(
     /** Chronological; capped at [WatchlistRepository.HISTORY_SIZE] points. */
     val history: List<ProbPoint> = emptyList(),
     val lastUpdatedMillis: Long = 0L,
+    /** Comparison window for delta and sparkline; 0 = all history. */
+    val periodHours: Int = 24,
 ) {
-    /** Probability change over the last ~24h (or the full history if shorter). */
+    /** Probability change over the chosen period (or the full history if shorter). */
     val delta: Double
-        get() = deltaBaseline()?.let { history.last().p - it.p } ?: 0.0
+        get() = baseline()?.let { history.last().p - it.p } ?: 0.0
 
-    /** Hours the delta actually spans, for labeling. */
+    /** Hours the delta actually spans, for honest labeling. */
     val deltaSpanHours: Long
-        get() = deltaBaseline()?.let {
+        get() = baseline()?.let {
             ((history.last().t - it.t) / 3_600_000L).coerceAtLeast(1)
         } ?: 0
 
-    private fun deltaBaseline(): ProbPoint? {
+    /** History points within the chosen period, for the sparkline. */
+    fun sparkPoints(): List<ProbPoint> {
+        if (periodHours == 0 || history.size < 2) return history
+        val cutoff = history.last().t - periodHours * 3_600_000L
+        val recent = history.filter { it.t >= cutoff }
+        return if (recent.size >= 2) recent else history
+    }
+
+    private fun baseline(): ProbPoint? {
         if (history.size < 2) return null
-        val cutoff = history.last().t - DAY_MILLIS
+        if (periodHours == 0) return history.first()
+        val cutoff = history.last().t - periodHours * 3_600_000L
         return history.lastOrNull { it.t <= cutoff } ?: history.first()
     }
 
     companion object {
         const val DAY_MILLIS = 86_400_000L
+        val PERIOD_OPTIONS = listOf(1 to "1H", 6 to "6H", 24 to "1D", 168 to "1W", 720 to "1M", 0 to "ALL")
+        fun periodLabel(hours: Int): String =
+            PERIOD_OPTIONS.firstOrNull { it.first == hours }?.second ?: "${hours}H"
     }
 }
 
@@ -100,6 +114,38 @@ class WatchlistRepository(private val context: Context) {
         mutate { list -> list.filterNot { it.slug == slug } }
     }
 
+    /** Switches a multiple-choice market to track a different answer, re-seeding history. */
+    suspend fun setAnswer(slug: String, answerId: String) {
+        val market = ManifoldApi.fetchMarket(slug)
+        val answer = market.answers.find { it.id == answerId }
+            ?: throw IllegalArgumentException("Answer not found on \"${market.question}\"")
+        val probability = answer.probability
+            ?: throw IllegalArgumentException("\"${answer.text}\" has no probability")
+        val now = System.currentTimeMillis()
+        val history = seedHistory(slug, answerId) + ProbPoint(now, probability)
+        mutate { list ->
+            list.map {
+                if (it.slug == market.slug) it.copy(
+                    probability = probability,
+                    answerId = answer.id,
+                    answerText = answer.text,
+                    history = history,
+                    lastUpdatedMillis = now,
+                ) else it
+            }
+        }
+    }
+
+    /** Changes the comparison window (delta + sparkline) for one market. */
+    suspend fun setPeriod(slug: String, hours: Int) {
+        mutate { list -> list.map { if (it.slug == slug) it.copy(periodHours = hours) else it } }
+    }
+
+    /** Answers available on a market, for the answer picker. */
+    suspend fun answersFor(slug: String): List<Answer> = ManifoldApi.fetchMarket(slug).answers
+
+    suspend fun search(term: String, limit: Int = 15): List<Market> = ManifoldApi.searchMarkets(term, limit)
+
     /** Re-fetches every watched market, appending to each probability history. */
     suspend fun refreshAll() {
         val updated = current().map { watched ->
@@ -128,7 +174,6 @@ class WatchlistRepository(private val context: Context) {
     /**
      * Builds an initial history from recent bets so the sparkline and delta
      * are meaningful immediately instead of waiting hours for refreshes.
-     * Prefers the last 7 days of activity; falls back to whatever exists.
      */
     private suspend fun seedHistory(slug: String, answerId: String?): List<ProbPoint> {
         val bets = runCatching { ManifoldApi.fetchBets(slug) }.getOrDefault(emptyList())
@@ -136,8 +181,7 @@ class WatchlistRepository(private val context: Context) {
             .filter { answerId == null || it.answerId == answerId }
             .mapNotNull { bet -> bet.probAfter?.let { ProbPoint(bet.createdTime, it) } }
             .sortedBy { it.t }
-        val recent = points.filter { it.t >= System.currentTimeMillis() - 7 * WatchedMarket.DAY_MILLIS }
-        return downsample(if (recent.size >= 2) recent else points, HISTORY_SIZE - 1)
+        return downsample(points, HISTORY_SIZE - 1)
     }
 
     private fun downsample(points: List<ProbPoint>, target: Int): List<ProbPoint> {
@@ -160,7 +204,7 @@ class WatchlistRepository(private val context: Context) {
             .getOrDefault(emptyList())
 
     companion object {
-        const val HISTORY_SIZE = 48
+        const val HISTORY_SIZE = 288
         private val KEY = stringPreferencesKey("markets")
         private val json = Json { ignoreUnknownKeys = true }
     }

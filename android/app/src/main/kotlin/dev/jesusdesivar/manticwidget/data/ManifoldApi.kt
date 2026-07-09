@@ -66,7 +66,7 @@ object ManifoldApi {
     }
 
     /** Recent bets for a market, newest first. Used to seed sparkline history. */
-    suspend fun fetchBets(slug: String, limit: Int = 100): List<Bet> = withContext(Dispatchers.IO) {
+    suspend fun fetchBets(slug: String, limit: Int = 1000): List<Bet> = withContext(Dispatchers.IO) {
         get("$BASE_URL/bets?contractSlug=$slug&limit=$limit").let {
             json.decodeFromString(kotlinx.serialization.builtins.ListSerializer(Bet.serializer()), it)
         }
@@ -74,7 +74,7 @@ object ManifoldApi {
 
     suspend fun searchMarkets(term: String, limit: Int = 10): List<Market> = withContext(Dispatchers.IO) {
         val encoded = java.net.URLEncoder.encode(term, "UTF-8")
-        get("$BASE_URL/search-markets?term=$encoded&limit=$limit&contractType=BINARY").let {
+        get("$BASE_URL/search-markets?term=$encoded&limit=$limit").let {
             json.decodeFromString(kotlinx.serialization.builtins.ListSerializer(Market.serializer()), it)
         }
     }
