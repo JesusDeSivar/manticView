@@ -39,12 +39,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import androidx.glance.appwidget.updateAll
+import androidx.compose.ui.text.font.FontWeight
 import dev.jesusdesivar.manticwidget.data.Answer
 import dev.jesusdesivar.manticwidget.data.Market
 import dev.jesusdesivar.manticwidget.data.WatchedMarket
 import dev.jesusdesivar.manticwidget.data.WatchlistRepository
-import dev.jesusdesivar.manticwidget.widget.ManticWidget
+import dev.jesusdesivar.manticwidget.widget.updateAllWidgets
 import dev.jesusdesivar.manticwidget.work.RefreshWorker
 import kotlinx.coroutines.launch
 import java.text.DateFormat
@@ -73,13 +73,14 @@ fun WatchlistScreen(repository: WatchlistRepository) {
     var busy by remember { mutableStateOf(false) }
     var searchResults by remember { mutableStateOf<List<Market>?>(null) }
     var answerPicker by remember { mutableStateOf<Pair<String, List<Answer>>?>(null) }
+    val theme by repository.themeFlow.collectAsState(initial = "system")
 
     fun run(syncWidget: Boolean = true, block: suspend () -> Unit) {
         scope.launch {
             busy = true
             try {
                 block()
-                if (syncWidget) ManticWidget().updateAll(context)
+                if (syncWidget) updateAllWidgets(context)
             } catch (e: Exception) {
                 Toast.makeText(context, e.message ?: "Something went wrong", Toast.LENGTH_LONG).show()
             } finally {
@@ -135,6 +136,28 @@ fun WatchlistScreen(repository: WatchlistRepository) {
                     enabled = !busy && markets.isNotEmpty(),
                     onClick = { run { repository.refreshAll() } },
                 ) { Text("Refresh all") }
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = "Widget theme",
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.weight(1f),
+                )
+                listOf("system", "light", "dark").forEach { option ->
+                    TextButton(
+                        enabled = !busy,
+                        onClick = { run { repository.setTheme(option) } },
+                    ) {
+                        Text(
+                            option.replaceFirstChar { it.uppercase() },
+                            fontWeight = if (theme == option) FontWeight.Bold else FontWeight.Normal,
+                        )
+                    }
+                }
             }
 
             LazyColumn {

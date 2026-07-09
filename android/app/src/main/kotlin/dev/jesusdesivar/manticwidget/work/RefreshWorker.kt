@@ -1,7 +1,6 @@
 package dev.jesusdesivar.manticwidget.work
 
 import android.content.Context
-import androidx.glance.appwidget.updateAll
 import androidx.work.Constraints
 import androidx.work.CoroutineWorker
 import androidx.work.ExistingPeriodicWorkPolicy
@@ -10,7 +9,7 @@ import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import dev.jesusdesivar.manticwidget.data.WatchlistRepository
-import dev.jesusdesivar.manticwidget.widget.ManticWidget
+import dev.jesusdesivar.manticwidget.widget.updateAllWidgets
 import java.util.concurrent.TimeUnit
 
 /**
@@ -24,7 +23,7 @@ class RefreshWorker(context: Context, params: WorkerParameters) :
     override suspend fun doWork(): Result {
         return try {
             WatchlistRepository(applicationContext).refreshAll()
-            ManticWidget().updateAll(applicationContext)
+            updateAllWidgets(applicationContext)
             Result.success()
         } catch (e: Exception) {
             Result.retry()

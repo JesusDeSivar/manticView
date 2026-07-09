@@ -10,11 +10,10 @@ import androidx.compose.ui.unit.sp
 import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
 import androidx.glance.GlanceTheme
-import androidx.glance.Image
-import androidx.glance.ImageProvider
 import androidx.glance.action.ActionParameters
 import androidx.glance.action.actionStartActivity
 import androidx.glance.action.clickable
+import androidx.glance.appwidget.CircularProgressIndicator
 import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.action.ActionCallback
 import androidx.glance.appwidget.action.actionRunCallback
@@ -42,33 +41,78 @@ import dev.jesusdesivar.manticwidget.data.WatchlistRepository
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
-private val Up = Color(0xFF34C77B)
-private val Down = Color(0xFFE5484D)
-private val Neutral = Color(0xFF9BA1A6)
+internal val Up = Color(0xFF34C77B)
+internal val Down = Color(0xFFE5484D)
+internal val Neutral = Color(0xFF9BA1A6)
 
+internal fun trendColor(market: WatchedMarket): Color = when {
+    market.delta > 0.0001 -> Up
+    market.delta < -0.0001 -> Down
+    else -> Neutral
+}
+
+internal fun deltaLabel(market: WatchedMarket, withAnswer: Boolean = true): String {
+    val trend = when {
+        market.isResolved -> "Resolved"
+        market.history.size < 2 -> "no history yet"
+        else -> {
+            val points = market.delta * 100
+            val span = spanLabel(market.deltaSpanHours)
+            when {
+                abs(points) < 0.5 -> "flat · $span"
+                points > 0 -> "▲ ${points.roundToInt()} pts · $span"
+                else -> "▼ ${abs(points).roundToInt()} pts · $span"
+            }
+        }
+    }
+    return if (withAnswer) market.answerText?.let { "$it · $trend" } ?: trend else trend
+}
+
+internal fun spanLabel(hours: Long): String =
+    if (hours >= 48) "${hours / 24}d" else "${hours}h"
+
+internal fun lastUpdatedLabel(markets: List<WatchedMarket>): String? {
+    val newest = markets.maxOfOrNull { it.lastUpdatedMillis } ?: return null
+    if (newest == 0L) return null
+    return java.text.DateFormat.getTimeInstance(java.text.DateFormat.SHORT)
+        .format(java.util.Date(newest))
+}
+
+internal fun Color.toArgb(): Int = android.graphics.Color.argb(
+    (alpha * 255).toInt(), (red * 255).toInt(), (green * 255).toInt(), (blue * 255).toInt()
+)
+
+/** 4×2 watchlist widget: one compact row per market, TradingView-style. */
 class ManticWidget : GlanceAppWidget() {
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
-        val markets = WatchlistRepository(context).current()
+        val repository = WatchlistRepository(context)
+        val markets = repository.current()
+        val theme = repository.theme()
+        val refreshing = repository.isRefreshing()
         provideContent {
-            GlanceTheme {
-                WidgetContent(markets)
+            ManticGlanceTheme(theme) {
+                WidgetContent(markets, refreshing)
             }
         }
     }
 
     @Composable
-    private fun WidgetContent(markets: List<WatchedMarket>) {
+    private fun WidgetContent(markets: List<WatchedMarket>, refreshing: Boolean) {
         Column(
             modifier = GlanceModifier
                 .fillMaxSize()
                 .background(GlanceTheme.colors.widgetBackground)
                 .padding(12.dp)
         ) {
-            Header(lastUpdatedLabel(markets))
+            Header(lastUpdatedLabel(markets), refreshing)
             Spacer(GlanceModifier.height(8.dp))
             if (markets.isEmpty()) {
-                EmptyState()
+                Text(
+                    text = "No markets yet — tap to add some.",
+                    style = TextStyle(color = GlanceTheme.colors.onSurfaceVariant, fontSize = 12.sp),
+                    modifier = GlanceModifier.clickable(actionStartActivity<MainActivity>()),
+                )
             } else {
                 markets.forEach { market ->
                     MarketRow(market)
@@ -79,7 +123,7 @@ class ManticWidget : GlanceAppWidget() {
     }
 
     @Composable
-    private fun Header(lastUpdated: String?) {
+    private fun Header(lastUpdated: String?, refreshing: Boolean) {
         Row(
             modifier = GlanceModifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
@@ -100,37 +144,13 @@ class ManticWidget : GlanceAppWidget() {
                 )
             }
             Spacer(GlanceModifier.defaultWeight())
-            Text(
-                text = "↻",
-                style = TextStyle(color = GlanceTheme.colors.primary, fontSize = 16.sp),
-                modifier = GlanceModifier.clickable(actionRunCallback<RefreshAction>()),
-            )
+            RefreshButton(refreshing)
         }
-    }
-
-    private fun lastUpdatedLabel(markets: List<WatchedMarket>): String? {
-        val newest = markets.maxOfOrNull { it.lastUpdatedMillis } ?: return null
-        if (newest == 0L) return null
-        return java.text.DateFormat.getTimeInstance(java.text.DateFormat.SHORT)
-            .format(java.util.Date(newest))
-    }
-
-    @Composable
-    private fun EmptyState() {
-        Text(
-            text = "No markets yet — tap to add some.",
-            style = TextStyle(color = GlanceTheme.colors.onSurfaceVariant, fontSize = 12.sp),
-            modifier = GlanceModifier.clickable(actionStartActivity<MainActivity>()),
-        )
     }
 
     @Composable
     private fun MarketRow(market: WatchedMarket) {
-        val trendColor = when {
-            market.delta > 0.0001 -> Up
-            market.delta < -0.0001 -> Down
-            else -> Neutral
-        }
+        val color = trendColor(market)
         Row(
             modifier = GlanceModifier
                 .fillMaxWidth()
@@ -149,58 +169,59 @@ class ManticWidget : GlanceAppWidget() {
                 )
                 Text(
                     text = deltaLabel(market),
-                    style = TextStyle(color = ColorProvider(trendColor), fontSize = 10.sp),
+                    maxLines = 1,
+                    style = TextStyle(color = ColorProvider(color), fontSize = 10.sp),
                 )
             }
-            Spacer(GlanceModifier.width(8.dp))
-            Image(
-                provider = ImageProvider(
-                    SparklineRenderer.render(market.sparkPoints().map { it.p }, color = trendColor.toArgb())
-                ),
-                contentDescription = "Probability trend",
-                modifier = GlanceModifier.size(width = 52.dp, height = 16.dp),
-            )
             Spacer(GlanceModifier.width(8.dp))
             Text(
                 text = market.resolution ?: "${(market.probability * 100).roundToInt()}%",
                 style = TextStyle(
-                    color = ColorProvider(trendColor),
+                    color = ColorProvider(color),
                     fontSize = 15.sp,
                     fontWeight = FontWeight.Bold,
                 ),
             )
         }
     }
-
-    private fun deltaLabel(market: WatchedMarket): String {
-        val trend = when {
-            market.isResolved -> "Resolved"
-            market.history.size < 2 -> "no history yet"
-            else -> {
-                val points = market.delta * 100
-                val span = spanLabel(market.deltaSpanHours)
-                when {
-                    abs(points) < 0.5 -> "flat · $span"
-                    points > 0 -> "▲ ${points.roundToInt()} pts · $span"
-                    else -> "▼ ${abs(points).roundToInt()} pts · $span"
-                }
-            }
-        }
-        return market.answerText?.let { "$it · $trend" } ?: trend
-    }
-
-    private fun spanLabel(hours: Long): String =
-        if (hours >= 48) "${hours / 24}d" else "${hours}h"
 }
 
-private fun Color.toArgb(): Int = android.graphics.Color.argb(
-    (alpha * 255).toInt(), (red * 255).toInt(), (green * 255).toInt(), (blue * 255).toInt()
-)
+/** Shared refresh affordance: ↻ normally, a spinner while refreshing. */
+@Composable
+internal fun RefreshButton(refreshing: Boolean) {
+    if (refreshing) {
+        CircularProgressIndicator(
+            modifier = GlanceModifier.size(16.dp),
+            color = GlanceTheme.colors.primary,
+        )
+    } else {
+        Text(
+            text = "↻",
+            style = TextStyle(color = GlanceTheme.colors.primary, fontSize = 16.sp),
+            modifier = GlanceModifier.clickable(actionRunCallback<RefreshAction>()),
+        )
+    }
+}
 
-/** Widget refresh button: re-fetch everything, then re-render all widgets. */
+/**
+ * Manual refresh from any widget: flip the spinner on, re-fetch everything,
+ * then re-render both widget types.
+ */
 class RefreshAction : ActionCallback {
     override suspend fun onAction(context: Context, glanceId: GlanceId, parameters: ActionParameters) {
-        WatchlistRepository(context).refreshAll()
-        ManticWidget().updateAll(context)
+        val repository = WatchlistRepository(context)
+        repository.setRefreshing(true)
+        updateAllWidgets(context)
+        try {
+            repository.refreshAll()
+        } finally {
+            repository.setRefreshing(false)
+            updateAllWidgets(context)
+        }
     }
+}
+
+internal suspend fun updateAllWidgets(context: Context) {
+    ManticWidget().updateAll(context)
+    SingleMarketWidget().updateAll(context)
 }

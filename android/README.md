@@ -4,8 +4,10 @@
 
 ## What it does
 
-- 📌 **Home-screen widget** showing your watched markets: question, live probability, 24-hour trend, and a sparkline of recent movement — seeded from real bet history so it's meaningful the moment you add a market.
-- 📈 **Watchlist app** where you add markets by slug or by pasting a `manifold.markets` URL. YES/NO markets are tracked directly; multiple-choice markets track their top answer.
+- 📌 **Watchlist widget (4×2)** showing your watched markets TradingView-style: question, live probability, and the trend over your chosen period.
+- 📊 **Single-market widget (2×2)** you configure when placing it: one market with a big probability, delta, and a large sparkline chart seeded from real bet history.
+- 📈 **Watchlist app** where you add markets by slug, URL, or search. YES/NO markets are tracked directly; multiple-choice markets track an answer of your choice.
+- 🎨 **Widget theme** picker (System / Light / Dark) and a spinner on the widgets while a manual refresh runs.
 - 🔋 **Battery-friendly refresh**: probabilities update every 30 minutes in the background via WorkManager (only when online), with an on-demand ↻ button on the widget itself. Background work stops automatically when you remove your last widget.
 - 🔓 Uses the free public [Manifold API](https://docs.manifold.markets/api) — no account, no API key.
 
@@ -43,6 +45,8 @@ Android budgets background work for widgets — periodic refresh below ~15–30 
 - [x] In-app market search
 - [x] Multi-choice market support, with a picker for which answer to track
 - [x] Per-market comparison period for delta and sparkline (1H/6H/1D/1W/1M/ALL)
+- [x] Single-market 2×2 widget with a large chart, configurable at placement
+- [x] Widget light/dark/system theme setting
 - [ ] Configurable refresh interval & per-widget watchlists
 - [ ] Resolved-market styling and auto-archive
 - [ ] Play Store release

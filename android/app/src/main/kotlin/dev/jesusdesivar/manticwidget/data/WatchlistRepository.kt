@@ -1,6 +1,7 @@
 package dev.jesusdesivar.manticwidget.data
 
 import android.content.Context
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
@@ -78,6 +79,23 @@ class WatchlistRepository(private val context: Context) {
     }
 
     suspend fun current(): List<WatchedMarket> = watchlist.first()
+
+    /** Widget theme preference: "system", "light", or "dark". */
+    val themeFlow: Flow<String> = context.dataStore.data.map { it[THEME_KEY] ?: "system" }
+
+    suspend fun theme(): String = themeFlow.first()
+
+    suspend fun setTheme(value: String) {
+        context.dataStore.edit { it[THEME_KEY] = value }
+    }
+
+    /** True while a manual refresh is in flight, so widgets can show a spinner. */
+    suspend fun isRefreshing(): Boolean =
+        context.dataStore.data.first()[REFRESHING_KEY] ?: false
+
+    suspend fun setRefreshing(value: Boolean) {
+        context.dataStore.edit { it[REFRESHING_KEY] = value }
+    }
 
     /**
      * Fetches the market to validate it, seeds the sparkline from recent bet
@@ -206,6 +224,8 @@ class WatchlistRepository(private val context: Context) {
     companion object {
         const val HISTORY_SIZE = 288
         private val KEY = stringPreferencesKey("markets")
+        private val THEME_KEY = stringPreferencesKey("theme")
+        private val REFRESHING_KEY = booleanPreferencesKey("refreshing")
         private val json = Json { ignoreUnknownKeys = true }
     }
 }
