@@ -34,7 +34,20 @@ Min SDK 26 (Android 8.0), target SDK 35.
 # APK lands in app/build/outputs/apk/debug/
 ```
 
-Or open the project in Android Studio and run it on a device/emulator. Add the widget from your launcher's widget picker ("Manifold watchlist").
+Or open the project in Android Studio and run it on a device/emulator. Add the widgets from your launcher's widget picker ("Manifold watchlist" / "Manifold market").
+
+### Release builds
+
+Signed release builds need two gitignored files in `android/` — the release keystore and a `keystore.properties` describing it:
+
+```properties
+storeFile=mantic-release.keystore
+storePassword=…
+keyAlias=mantic
+keyPassword=…
+```
+
+Then `./gradlew assembleRelease` produces a signed, minified APK in `app/build/outputs/apk/release/`. Never commit the keystore or its passwords; losing them means existing installs can never be updated.
 
 ## Why not truly live?
 
