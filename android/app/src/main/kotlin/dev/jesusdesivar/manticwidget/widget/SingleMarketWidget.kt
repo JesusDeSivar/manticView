@@ -15,15 +15,21 @@ import androidx.glance.GlanceModifier
 import androidx.glance.GlanceTheme
 import androidx.glance.Image
 import androidx.glance.ImageProvider
+import androidx.glance.action.ActionParameters
+import androidx.glance.action.actionParametersOf
 import androidx.glance.action.actionStartActivity
 import androidx.glance.action.clickable
 import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.GlanceAppWidgetReceiver
+import androidx.glance.appwidget.action.ActionCallback
+import androidx.glance.appwidget.action.actionRunCallback
 import androidx.glance.appwidget.action.actionStartActivity
 import androidx.glance.appwidget.provideContent
+import androidx.glance.appwidget.state.updateAppWidgetState
 import androidx.glance.background
 import androidx.glance.currentState
 import androidx.glance.layout.Alignment
+import androidx.glance.layout.Box
 import androidx.glance.layout.Column
 import androidx.glance.layout.Row
 import androidx.glance.layout.Spacer
@@ -59,12 +65,13 @@ class SingleMarketWidget : GlanceAppWidget() {
             val theme by repository.themeFlow.collectAsState(initial = initialTheme)
             val refreshing by repository.refreshingFlow.collectAsState(initial = false)
             val slug = currentState<Preferences>()[SLUG_KEY]
-            val market = markets.find { it.slug == slug }
+            val index = markets.indexOfFirst { it.slug == slug }
+            val market = markets.getOrNull(index)
             ManticGlanceTheme(theme) {
                 if (market == null) {
                     Unconfigured()
                 } else {
-                    MarketPanel(market, refreshing)
+                    MarketPanel(market, refreshing, position = "${index + 1}/${markets.size}")
                 }
             }
         }
@@ -89,7 +96,7 @@ class SingleMarketWidget : GlanceAppWidget() {
     }
 
     @Composable
-    private fun MarketPanel(market: WatchedMarket, refreshing: Boolean) {
+    private fun MarketPanel(market: WatchedMarket, refreshing: Boolean, position: String) {
         val color = displayColor(market)
         Column(
             modifier = GlanceModifier
@@ -147,12 +154,44 @@ class SingleMarketWidget : GlanceAppWidget() {
                 contentDescription = "Probability history",
                 modifier = GlanceModifier.fillMaxWidth().defaultWeight(),
             )
-            lastUpdatedLabel(listOf(market))?.let {
+            Row(
+                modifier = GlanceModifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                CycleButton("‹", direction = -1)
+                Spacer(GlanceModifier.defaultWeight())
                 Text(
-                    text = "$it · ${WatchedMarket.periodLabel(market.periodHours)}",
+                    text = listOfNotNull(
+                        lastUpdatedLabel(listOf(market)),
+                        WatchedMarket.periodLabel(market.periodHours),
+                        position,
+                    ).joinToString(" · "),
                     style = TextStyle(color = GlanceTheme.colors.onSurfaceVariant, fontSize = 9.sp),
                 )
+                Spacer(GlanceModifier.defaultWeight())
+                CycleButton("›", direction = 1)
             }
+        }
+    }
+
+    @Composable
+    private fun CycleButton(label: String, direction: Int) {
+        Box(
+            modifier = GlanceModifier.clickable(
+                actionRunCallback<CycleMarketAction>(
+                    actionParametersOf(CycleMarketAction.DIRECTION to direction)
+                )
+            )
+        ) {
+            Text(
+                text = label,
+                style = TextStyle(
+                    color = GlanceTheme.colors.primary,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                ),
+                modifier = GlanceModifier.padding(horizontal = 8.dp, vertical = 2.dp),
+            )
         }
     }
 
@@ -163,4 +202,24 @@ class SingleMarketWidget : GlanceAppWidget() {
 
 class SingleMarketWidgetReceiver : GlanceAppWidgetReceiver() {
     override val glanceAppWidget: GlanceAppWidget = SingleMarketWidget()
+}
+
+/** ‹ › on the widget: step to the previous/next market in the watchlist. */
+class CycleMarketAction : ActionCallback {
+    override suspend fun onAction(context: Context, glanceId: GlanceId, parameters: ActionParameters) {
+        val direction = parameters[DIRECTION] ?: 1
+        val markets = WatchlistRepository(context).current()
+        if (markets.isEmpty()) return
+        updateAppWidgetState(context, glanceId) { prefs ->
+            val current = prefs[SingleMarketWidget.SLUG_KEY]
+            val index = markets.indexOfFirst { it.slug == current }
+            val next = if (index < 0) 0 else (index + direction + markets.size) % markets.size
+            prefs[SingleMarketWidget.SLUG_KEY] = markets[next].slug
+        }
+        SingleMarketWidget().update(context, glanceId)
+    }
+
+    companion object {
+        val DIRECTION = ActionParameters.Key<Int>("direction")
+    }
 }
