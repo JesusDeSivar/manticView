@@ -118,7 +118,11 @@ fun WatchlistScreen(repository: WatchlistRepository) {
                     ListItem(
                         headlineContent = { Text(market.question) },
                         supportingContent = {
-                            Text(market.resolution?.let { "Resolved: $it" } ?: market.slug)
+                            Text(
+                                market.resolution?.let { "Resolved: $it" }
+                                    ?: market.answerText
+                                    ?: market.slug
+                            )
                         },
                         trailingContent = {
                             Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {

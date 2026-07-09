@@ -143,7 +143,7 @@ class ManticWidget : GlanceAppWidget() {
             Spacer(GlanceModifier.width(8.dp))
             Image(
                 provider = ImageProvider(
-                    SparklineRenderer.render(market.history, color = trendColor.toArgb())
+                    SparklineRenderer.render(market.history.map { it.p }, color = trendColor.toArgb())
                 ),
                 contentDescription = "Probability trend",
                 modifier = GlanceModifier.size(width = 52.dp, height = 16.dp),
@@ -161,13 +161,20 @@ class ManticWidget : GlanceAppWidget() {
     }
 
     private fun deltaLabel(market: WatchedMarket): String {
-        if (market.isResolved) return "Resolved"
-        val points = market.delta * 100
-        return when {
-            abs(points) < 0.5 -> "flat"
-            points > 0 -> "▲ ${points.roundToInt()} pts"
-            else -> "▼ ${abs(points).roundToInt()} pts"
+        val trend = when {
+            market.isResolved -> "Resolved"
+            else -> {
+                val points = market.delta * 100
+                val span = market.deltaSpanHours.let { if (it >= 22) "24h" else "${it}h" }
+                when {
+                    market.history.size < 2 -> "no history yet"
+                    abs(points) < 0.5 -> "flat · $span"
+                    points > 0 -> "▲ ${points.roundToInt()} pts · $span"
+                    else -> "▼ ${abs(points).roundToInt()} pts · $span"
+                }
+            }
         }
+        return market.answerText?.let { "$it · $trend" } ?: trend
     }
 }
 

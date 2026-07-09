@@ -21,6 +21,21 @@ data class Market(
     val resolution: String? = null,
     val closeTime: Long? = null,
     val volume24Hours: Double = 0.0,
+    val answers: List<Answer> = emptyList(),
+)
+
+@Serializable
+data class Answer(
+    val id: String,
+    val text: String,
+    val probability: Double? = null,
+)
+
+@Serializable
+data class Bet(
+    val createdTime: Long,
+    val probAfter: Double? = null,
+    val answerId: String? = null,
 )
 
 /**
@@ -48,6 +63,13 @@ object ManifoldApi {
     suspend fun fetchMarket(slugOrUrl: String): Market = withContext(Dispatchers.IO) {
         val slug = parseSlug(slugOrUrl)
         get("$BASE_URL/slug/$slug").let { json.decodeFromString(Market.serializer(), it) }
+    }
+
+    /** Recent bets for a market, newest first. Used to seed sparkline history. */
+    suspend fun fetchBets(slug: String, limit: Int = 100): List<Bet> = withContext(Dispatchers.IO) {
+        get("$BASE_URL/bets?contractSlug=$slug&limit=$limit").let {
+            json.decodeFromString(kotlinx.serialization.builtins.ListSerializer(Bet.serializer()), it)
+        }
     }
 
     suspend fun searchMarkets(term: String, limit: Int = 10): List<Market> = withContext(Dispatchers.IO) {

@@ -4,8 +4,8 @@
 
 ## What it does
 
-- 📌 **Home-screen widget** showing your watched markets: question, live probability, trend arrow, and a sparkline of recent movement.
-- 📈 **Watchlist app** where you add markets by slug or by pasting a `manifold.markets` URL.
+- 📌 **Home-screen widget** showing your watched markets: question, live probability, 24-hour trend, and a sparkline of recent movement — seeded from real bet history so it's meaningful the moment you add a market.
+- 📈 **Watchlist app** where you add markets by slug or by pasting a `manifold.markets` URL. YES/NO markets are tracked directly; multiple-choice markets track their top answer.
 - 🔋 **Battery-friendly refresh**: probabilities update every 30 minutes in the background via WorkManager (only when online), with an on-demand ↻ button on the widget itself. Background work stops automatically when you remove your last widget.
 - 🔓 Uses the free public [Manifold API](https://docs.manifold.markets/api) — no account, no API key.
 
@@ -43,7 +43,8 @@ Android budgets background work for widgets — periodic refresh below ~15–30 
 - [ ] In-app market search (the API client already supports it)
 - [ ] Configurable refresh interval & per-widget watchlists
 - [ ] Resolved-market styling and auto-archive
-- [ ] Multi-choice market support (top answer + probability)
+- [x] Multi-choice market support (tracks the top answer)
+- [ ] Choose which answer to track on multi-choice markets
 - [ ] Play Store release
 
 ## License
