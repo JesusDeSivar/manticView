@@ -4,6 +4,8 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -22,6 +24,7 @@ import androidx.glance.appwidget.provideContent
 import androidx.glance.appwidget.updateAll
 import androidx.glance.background
 import androidx.glance.layout.Alignment
+import androidx.glance.layout.Box
 import androidx.glance.layout.Column
 import androidx.glance.layout.Row
 import androidx.glance.layout.Spacer
@@ -87,10 +90,17 @@ class ManticWidget : GlanceAppWidget() {
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         val repository = WatchlistRepository(context)
-        val markets = repository.current()
-        val theme = repository.theme()
-        val refreshing = repository.isRefreshing()
+        // Snapshot for first paint; the flows below keep the composition live.
+        val initialMarkets = repository.current()
+        val initialTheme = repository.theme()
         provideContent {
+            // Collected inside the composition so any DataStore change (refresh,
+            // add/remove, period, theme) recomposes the widget. Reading once in
+            // provideGlance leaves stale data on screen when Glance reuses a
+            // running session for an update.
+            val markets by repository.watchlist.collectAsState(initial = initialMarkets)
+            val theme by repository.themeFlow.collectAsState(initial = initialTheme)
+            val refreshing by repository.refreshingFlow.collectAsState(initial = false)
             ManticGlanceTheme(theme) {
                 WidgetContent(markets, refreshing)
             }
@@ -190,16 +200,20 @@ class ManticWidget : GlanceAppWidget() {
 @Composable
 internal fun RefreshButton(refreshing: Boolean) {
     if (refreshing) {
-        CircularProgressIndicator(
-            modifier = GlanceModifier.size(16.dp),
-            color = GlanceTheme.colors.primary,
-        )
+        Box(modifier = GlanceModifier.padding(4.dp)) {
+            CircularProgressIndicator(
+                modifier = GlanceModifier.size(20.dp),
+                color = GlanceTheme.colors.primary,
+            )
+        }
     } else {
-        Text(
-            text = "↻",
-            style = TextStyle(color = GlanceTheme.colors.primary, fontSize = 16.sp),
-            modifier = GlanceModifier.clickable(actionRunCallback<RefreshAction>()),
-        )
+        Box(modifier = GlanceModifier.clickable(actionRunCallback<RefreshAction>())) {
+            Text(
+                text = "↻",
+                style = TextStyle(color = GlanceTheme.colors.primary, fontSize = 20.sp),
+                modifier = GlanceModifier.padding(4.dp),
+            )
+        }
     }
 }
 

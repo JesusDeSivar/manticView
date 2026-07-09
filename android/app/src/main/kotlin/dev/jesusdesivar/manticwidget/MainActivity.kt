@@ -4,6 +4,7 @@ import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -16,6 +17,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.lightColorScheme
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -55,12 +58,28 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         RefreshWorker.schedule(this)
+        val repository = WatchlistRepository(applicationContext)
         setContent {
-            MaterialTheme {
-                WatchlistScreen(WatchlistRepository(applicationContext))
+            ManticAppTheme(repository) {
+                WatchlistScreen(repository)
             }
         }
     }
+}
+
+/** In-app Material theme following the same preference the widgets use. */
+@Composable
+fun ManticAppTheme(repository: WatchlistRepository, content: @Composable () -> Unit) {
+    val theme by repository.themeFlow.collectAsState(initial = "system")
+    val dark = when (theme) {
+        "dark" -> true
+        "light" -> false
+        else -> isSystemInDarkTheme()
+    }
+    MaterialTheme(
+        colorScheme = if (dark) darkColorScheme() else lightColorScheme(),
+        content = content,
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -143,7 +162,7 @@ fun WatchlistScreen(repository: WatchlistRepository) {
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    text = "Widget theme",
+                    text = "Theme",
                     style = MaterialTheme.typography.bodySmall,
                     modifier = Modifier.weight(1f),
                 )

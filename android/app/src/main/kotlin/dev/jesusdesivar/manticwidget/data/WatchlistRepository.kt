@@ -5,6 +5,9 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
@@ -43,23 +46,44 @@ data class WatchedMarket(
 
     /** Hours the delta actually spans, for honest labeling. */
     val deltaSpanHours: Long
-        get() = baseline()?.let {
-            ((history.last().t - it.t) / 3_600_000L).coerceAtLeast(1)
+        get() = baseline()?.let { base ->
+            Math.round((history.last().t - base.t) / 3_600_000.0).coerceAtLeast(1)
         } ?: 0
 
-    /** History points within the chosen period, for the sparkline. */
+    /**
+     * History points within the chosen period, for the sparkline. The window
+     * boundary is an interpolated point, so changing the period visibly
+     * changes the chart even with sparse history.
+     */
     fun sparkPoints(): List<ProbPoint> {
-        if (periodHours == 0 || history.size < 2) return history
-        val cutoff = history.last().t - periodHours * 3_600_000L
-        val recent = history.filter { it.t >= cutoff }
-        return if (recent.size >= 2) recent else history
+        if (history.size < 2) return history
+        val cutoff = cutoff() ?: return history
+        val base = interpolatedAt(cutoff) ?: return history
+        return listOf(base) + history.filter { it.t > cutoff }
     }
 
+    /**
+     * The comparison point: the probability exactly [periodHours] ago,
+     * linearly interpolated between the surrounding observations. Stored
+     * points are sparse (seeded bets, 30-minute refreshes), so snapping to
+     * the nearest stored point would silently stretch a "1H" comparison to
+     * whatever gap the history happens to have.
+     */
     private fun baseline(): ProbPoint? {
         if (history.size < 2) return null
-        if (periodHours == 0) return history.first()
-        val cutoff = history.last().t - periodHours * 3_600_000L
-        return history.lastOrNull { it.t <= cutoff } ?: history.first()
+        val cutoff = cutoff() ?: return history.first()
+        return interpolatedAt(cutoff) ?: history.first()
+    }
+
+    private fun cutoff(): Long? =
+        if (periodHours == 0) null else history.last().t - periodHours * 3_600_000L
+
+    private fun interpolatedAt(time: Long): ProbPoint? {
+        val older = history.lastOrNull { it.t <= time } ?: return null
+        val newer = history.firstOrNull { it.t >= time } ?: return older
+        if (newer.t == older.t) return older
+        val fraction = (time - older.t).toDouble() / (newer.t - older.t)
+        return ProbPoint(time, older.p + (newer.p - older.p) * fraction)
     }
 
     companion object {
@@ -90,8 +114,7 @@ class WatchlistRepository(private val context: Context) {
     }
 
     /** True while a manual refresh is in flight, so widgets can show a spinner. */
-    suspend fun isRefreshing(): Boolean =
-        context.dataStore.data.first()[REFRESHING_KEY] ?: false
+    val refreshingFlow: Flow<Boolean> = context.dataStore.data.map { it[REFRESHING_KEY] ?: false }
 
     suspend fun setRefreshing(value: Boolean) {
         context.dataStore.edit { it[REFRESHING_KEY] = value }
@@ -164,30 +187,33 @@ class WatchlistRepository(private val context: Context) {
 
     suspend fun search(term: String, limit: Int = 15): List<Market> = ManifoldApi.searchMarkets(term, limit)
 
-    /** Re-fetches every watched market, appending to each probability history. */
-    suspend fun refreshAll() {
-        val updated = current().map { watched ->
-            runCatching { ManifoldApi.fetchMarket(watched.slug) }.fold(
-                onSuccess = { market ->
-                    val answer = watched.answerId?.let { id -> market.answers.find { it.id == id } }
-                    val probability = answer?.probability ?: market.probability ?: watched.probability
-                    watched.copy(
-                        question = market.question,
-                        probability = probability,
-                        answerText = answer?.text ?: watched.answerText,
-                        isResolved = market.isResolved,
-                        resolution = market.resolution,
-                        history = (watched.history + ProbPoint(System.currentTimeMillis(), probability))
-                            .takeLast(HISTORY_SIZE),
-                        lastUpdatedMillis = System.currentTimeMillis(),
-                    )
-                },
-                // Keep stale data on transient failures; the widget shows last-updated time.
-                onFailure = { watched },
-            )
-        }
+    /** Re-fetches every watched market in parallel, appending to each history. */
+    suspend fun refreshAll() = coroutineScope {
+        val updated = current()
+            .map { watched -> async { refreshOne(watched) } }
+            .awaitAll()
         context.dataStore.edit { prefs -> prefs[KEY] = encode(updated) }
     }
+
+    private suspend fun refreshOne(watched: WatchedMarket): WatchedMarket =
+        runCatching { ManifoldApi.fetchMarket(watched.slug) }.fold(
+            onSuccess = { market ->
+                val answer = watched.answerId?.let { id -> market.answers.find { it.id == id } }
+                val probability = answer?.probability ?: market.probability ?: watched.probability
+                watched.copy(
+                    question = market.question,
+                    probability = probability,
+                    answerText = answer?.text ?: watched.answerText,
+                    isResolved = market.isResolved,
+                    resolution = market.resolution,
+                    history = (watched.history + ProbPoint(System.currentTimeMillis(), probability))
+                        .takeLast(HISTORY_SIZE),
+                    lastUpdatedMillis = System.currentTimeMillis(),
+                )
+            },
+            // Keep stale data on transient failures; the widget shows last-updated time.
+            onFailure = { watched },
+        )
 
     /**
      * Builds an initial history from recent bets so the sparkline and delta

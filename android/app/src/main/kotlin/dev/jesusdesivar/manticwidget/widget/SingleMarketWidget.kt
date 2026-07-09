@@ -4,6 +4,8 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.datastore.preferences.core.Preferences
@@ -47,10 +49,15 @@ class SingleMarketWidget : GlanceAppWidget() {
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         val repository = WatchlistRepository(context)
-        val markets = repository.current()
-        val theme = repository.theme()
-        val refreshing = repository.isRefreshing()
+        // Snapshot for first paint; the flows below keep the composition live.
+        val initialMarkets = repository.current()
+        val initialTheme = repository.theme()
         provideContent {
+            // Collected inside the composition so DataStore changes recompose
+            // the widget instead of leaving a stale session on screen.
+            val markets by repository.watchlist.collectAsState(initial = initialMarkets)
+            val theme by repository.themeFlow.collectAsState(initial = initialTheme)
+            val refreshing by repository.refreshingFlow.collectAsState(initial = false)
             val slug = currentState<Preferences>()[SLUG_KEY]
             val market = markets.find { it.slug == slug }
             ManticGlanceTheme(theme) {

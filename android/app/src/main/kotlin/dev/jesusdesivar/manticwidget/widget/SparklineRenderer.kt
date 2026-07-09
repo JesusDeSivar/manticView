@@ -32,7 +32,7 @@ object SparklineRenderer {
         val min = history.min()
         val max = history.max()
         // Give flat lines some vertical room so they don't hug an edge.
-        val span = (max - min).coerceAtLeast(0.02)
+        val span = (max - min).coerceAtLeast(0.01)
         val pad = paint.strokeWidth
 
         val path = Path()

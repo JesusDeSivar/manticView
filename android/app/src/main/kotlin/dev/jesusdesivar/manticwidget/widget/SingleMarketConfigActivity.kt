@@ -51,7 +51,7 @@ class SingleMarketConfigActivity : ComponentActivity() {
 
         val repository = WatchlistRepository(applicationContext)
         setContent {
-            MaterialTheme {
+            dev.jesusdesivar.manticwidget.ManticAppTheme(repository) {
                 val markets by repository.watchlist.collectAsState(initial = emptyList())
                 Scaffold(
                     topBar = { TopAppBar(title = { Text("Choose a market") }) },
