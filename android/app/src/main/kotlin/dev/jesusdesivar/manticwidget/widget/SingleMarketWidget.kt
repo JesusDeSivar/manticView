@@ -90,7 +90,7 @@ class SingleMarketWidget : GlanceAppWidget() {
 
     @Composable
     private fun MarketPanel(market: WatchedMarket, refreshing: Boolean) {
-        val color = trendColor(market)
+        val color = displayColor(market)
         Column(
             modifier = GlanceModifier
                 .fillMaxSize()
@@ -114,7 +114,7 @@ class SingleMarketWidget : GlanceAppWidget() {
             Spacer(GlanceModifier.height(4.dp))
             Row(modifier = GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    text = market.resolution ?: "${(market.probability * 100).roundToInt()}%",
+                    text = displayValue(market),
                     style = TextStyle(
                         color = ColorProvider(color),
                         fontSize = 26.sp,

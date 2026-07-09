@@ -47,6 +47,7 @@ import dev.jesusdesivar.manticwidget.data.Answer
 import dev.jesusdesivar.manticwidget.data.Market
 import dev.jesusdesivar.manticwidget.data.WatchedMarket
 import dev.jesusdesivar.manticwidget.data.WatchlistRepository
+import dev.jesusdesivar.manticwidget.widget.displayValue
 import dev.jesusdesivar.manticwidget.widget.updateAllWidgets
 import dev.jesusdesivar.manticwidget.work.RefreshWorker
 import kotlinx.coroutines.launch
@@ -223,9 +224,8 @@ fun WatchlistScreen(repository: WatchlistRepository) {
                         supportingContent = {
                             Column {
                                 Text(
-                                    market.resolution?.let { "Resolved: $it" }
-                                        ?: market.answerText
-                                        ?: market.slug
+                                    if (market.isResolved) "Resolved — ${market.answerText ?: market.slug}"
+                                    else market.answerText ?: market.slug
                                 )
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     PeriodChip(market, enabled = !busy) { hours ->
@@ -247,7 +247,7 @@ fun WatchlistScreen(repository: WatchlistRepository) {
                         trailingContent = {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Text(
-                                    text = "${(market.probability * 100).roundToInt()}%",
+                                    text = displayValue(market),
                                     style = MaterialTheme.typography.titleMedium,
                                 )
                                 TextButton(
