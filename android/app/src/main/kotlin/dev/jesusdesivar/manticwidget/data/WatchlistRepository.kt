@@ -41,12 +41,21 @@ data class WatchedMarket(
      * markets, which is meaningless on screen.
      */
     val resolutionLabel: String? = null,
+    /** When the app first observed this market as resolved. */
+    val resolvedSeenMillis: Long? = null,
     /** Chronological; capped at [WatchlistRepository.HISTORY_SIZE] points. */
     val history: List<ProbPoint> = emptyList(),
     val lastUpdatedMillis: Long = 0L,
     /** Comparison window for delta and sparkline; 0 = all history. */
     val periodHours: Int = 24,
 ) {
+    /**
+     * Resolved markets linger on the watchlist widget for a grace period so
+     * the outcome is seen, then drop off; they stay in the app until removed.
+     */
+    fun isArchived(now: Long = System.currentTimeMillis()): Boolean =
+        isResolved && resolvedSeenMillis != null && now - resolvedSeenMillis > ARCHIVE_AFTER_MILLIS
+
     /** Probability change over the chosen period (or the full history if shorter). */
     val delta: Double
         get() = baseline()?.let { history.last().p - it.p } ?: 0.0
@@ -95,6 +104,7 @@ data class WatchedMarket(
 
     companion object {
         const val DAY_MILLIS = 86_400_000L
+        const val ARCHIVE_AFTER_MILLIS = 2 * DAY_MILLIS
         val PERIOD_OPTIONS = listOf(1 to "1H", 6 to "6H", 24 to "1D", 168 to "1W", 720 to "1M", 0 to "ALL")
         fun periodLabel(hours: Int): String =
             PERIOD_OPTIONS.firstOrNull { it.first == hours }?.second ?: "${hours}H"
@@ -153,6 +163,7 @@ class WatchlistRepository(private val context: Context) {
             isResolved = market.isResolved,
             resolution = market.resolution,
             resolutionLabel = resolutionLabel(market, answer?.id),
+            resolvedSeenMillis = if (market.isResolved) now else null,
             history = seedHistory(market.slug, answer?.id) + ProbPoint(now, probability),
             lastUpdatedMillis = now,
         )
@@ -181,6 +192,8 @@ class WatchlistRepository(private val context: Context) {
                     isResolved = market.isResolved,
                     resolution = market.resolution,
                     resolutionLabel = resolutionLabel(market, answer.id),
+                    resolvedSeenMillis = it.resolvedSeenMillis
+                        ?: if (market.isResolved) now else null,
                     history = history,
                     lastUpdatedMillis = now,
                 ) else it
@@ -218,6 +231,8 @@ class WatchlistRepository(private val context: Context) {
                     isResolved = market.isResolved,
                     resolution = market.resolution,
                     resolutionLabel = resolutionLabel(market, watched.answerId),
+                    resolvedSeenMillis = watched.resolvedSeenMillis
+                        ?: if (market.isResolved) System.currentTimeMillis() else null,
                     history = (watched.history + ProbPoint(System.currentTimeMillis(), probability))
                         .takeLast(HISTORY_SIZE),
                     lastUpdatedMillis = System.currentTimeMillis(),

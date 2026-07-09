@@ -218,15 +218,15 @@ fun WatchlistScreen(repository: WatchlistRepository) {
                     item { HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp)) }
                 }
 
-                items(markets, key = { it.slug }) { market ->
+                val active = markets.filterNot { it.isResolved }
+                val resolved = markets.filter { it.isResolved }
+
+                items(active, key = { it.slug }) { market ->
                     ListItem(
                         headlineContent = { Text(market.question) },
                         supportingContent = {
                             Column {
-                                Text(
-                                    if (market.isResolved) "Resolved — ${market.answerText ?: market.slug}"
-                                    else market.answerText ?: market.slug
-                                )
+                                Text(market.answerText ?: market.slug)
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     PeriodChip(market, enabled = !busy) { hours ->
                                         run { repository.setPeriod(market.slug, hours) }
@@ -257,6 +257,42 @@ fun WatchlistScreen(repository: WatchlistRepository) {
                             }
                         },
                     )
+                }
+
+                if (resolved.isNotEmpty()) {
+                    item {
+                        Text(
+                            "Resolved",
+                            style = MaterialTheme.typography.titleSmall,
+                            modifier = Modifier.padding(top = 12.dp, bottom = 4.dp),
+                        )
+                    }
+                    items(resolved, key = { it.slug }) { market ->
+                        val dim = MaterialTheme.colorScheme.onSurfaceVariant
+                        ListItem(
+                            headlineContent = { Text(market.question, color = dim) },
+                            supportingContent = {
+                                Text(
+                                    (market.answerText ?: market.slug) +
+                                        if (market.isArchived()) "" else " · still on widget",
+                                    color = dim,
+                                )
+                            },
+                            trailingContent = {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text(
+                                        text = displayValue(market),
+                                        style = MaterialTheme.typography.titleMedium,
+                                        color = dim,
+                                    )
+                                    TextButton(
+                                        enabled = !busy,
+                                        onClick = { run { repository.remove(market.slug) } },
+                                    ) { Text("✕") }
+                                }
+                            },
+                        )
+                    }
                 }
             }
         }

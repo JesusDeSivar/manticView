@@ -60,8 +60,10 @@ Android budgets background work for widgets — periodic refresh below ~15–30 
 - [x] Per-market comparison period for delta and sparkline (1H/6H/1D/1W/1M/ALL)
 - [x] Single-market 2×2 widget with a large chart, configurable at placement
 - [x] Widget light/dark/system theme setting
+- [x] Resolved-market outcomes (Won/Lost/YES/NO) and auto-archive: resolved
+      markets linger on the watchlist widget for 48 hours, then move to the
+      app's Resolved section until removed
 - [ ] Configurable refresh interval & per-widget watchlists
-- [ ] Resolved-market styling and auto-archive
 - [ ] Play Store release
 
 ## License

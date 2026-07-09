@@ -124,6 +124,9 @@ class ManticWidget : GlanceAppWidget() {
 
     @Composable
     private fun WidgetContent(markets: List<WatchedMarket>, refreshing: Boolean) {
+        // Recently resolved markets linger for the grace period; older ones
+        // stay in the app's Resolved section but leave the widget.
+        val visible = markets.filterNot { it.isArchived() }
         Column(
             modifier = GlanceModifier
                 .fillMaxSize()
@@ -132,14 +135,15 @@ class ManticWidget : GlanceAppWidget() {
         ) {
             Header(lastUpdatedLabel(markets), refreshing)
             Spacer(GlanceModifier.height(8.dp))
-            if (markets.isEmpty()) {
+            if (visible.isEmpty()) {
                 Text(
-                    text = "No markets yet — tap to add some.",
+                    text = if (markets.isEmpty()) "No markets yet — tap to add some."
+                    else "No active markets — resolved ones are in the app.",
                     style = TextStyle(color = GlanceTheme.colors.onSurfaceVariant, fontSize = 12.sp),
                     modifier = GlanceModifier.clickable(actionStartActivity<MainActivity>()),
                 )
             } else {
-                markets.forEach { market ->
+                visible.forEach { market ->
                     MarketRow(market)
                     Spacer(GlanceModifier.height(6.dp))
                 }
