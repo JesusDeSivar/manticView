@@ -100,6 +100,7 @@ fun WatchlistScreen(repository: WatchlistRepository) {
     var searchResults by remember { mutableStateOf<List<Market>?>(null) }
     var answerPicker by remember { mutableStateOf<AnswerPickerRequest?>(null) }
     var groupPicker by remember { mutableStateOf<String?>(null) }
+    var groupRename by remember { mutableStateOf<String?>(null) }
     val theme by repository.themeFlow.collectAsState(initial = "system")
     val groupOrder by repository.groupOrderFlow.collectAsState(initial = emptyList())
     val hiddenGroups by repository.hiddenGroupsFlow.collectAsState(initial = emptySet())
@@ -261,6 +262,10 @@ fun WatchlistScreen(repository: WatchlistRepository) {
                                 }
                                 TextButton(
                                     enabled = !busy,
+                                    onClick = { groupRename = groupName },
+                                ) { Text("✎") }
+                                TextButton(
+                                    enabled = !busy,
                                     onClick = { run { repository.setGroupHidden(groupName, !hidden) } },
                                 ) { Text(if (hidden) "Show" else "Hide") }
                             }
@@ -402,6 +407,35 @@ fun WatchlistScreen(repository: WatchlistRepository) {
             },
             confirmButton = {
                 TextButton(onClick = { answerPicker = null }) { Text("Cancel") }
+            },
+        )
+    }
+
+    groupRename?.let { from ->
+        var newName by remember(from) { mutableStateOf(from) }
+        AlertDialog(
+            onDismissRequest = { groupRename = null },
+            title = { Text("Rename group") },
+            text = {
+                OutlinedTextField(
+                    value = newName,
+                    onValueChange = { newName = it },
+                    label = { Text("Group name") },
+                    singleLine = true,
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    enabled = !busy && newName.isNotBlank() && newName.trim() != from,
+                    onClick = {
+                        val name = newName
+                        groupRename = null
+                        run { repository.renameGroup(from, name) }
+                    },
+                ) { Text("Rename") }
+            },
+            dismissButton = {
+                TextButton(onClick = { groupRename = null }) { Text("Cancel") }
             },
         )
     }

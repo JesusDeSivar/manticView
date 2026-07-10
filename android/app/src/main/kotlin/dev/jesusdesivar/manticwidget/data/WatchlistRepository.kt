@@ -153,6 +153,23 @@ class WatchlistRepository(private val context: Context) {
         context.dataStore.edit { it[GROUP_ORDER_KEY] = encodeStrings(order) }
     }
 
+    /** Renames a group everywhere: entries, display order, and hidden set.
+     *  Renaming onto an existing group's name merges the two. */
+    suspend fun renameGroup(from: String, to: String) {
+        val name = to.trim()
+        if (name.isEmpty() || name == from) return
+        mutate { list -> list.map { if (it.group == from) it.copy(group = name) else it } }
+        context.dataStore.edit { prefs ->
+            val order = prefs[GROUP_ORDER_KEY]?.let { decodeStrings(it) } ?: emptyList()
+            prefs[GROUP_ORDER_KEY] = encodeStrings(order.map { if (it == from) name else it }.distinct())
+            val hidden = prefs[HIDDEN_GROUPS_KEY]?.let { decodeStrings(it).toMutableSet() } ?: mutableSetOf()
+            if (hidden.remove(from)) {
+                hidden.add(name)
+                prefs[HIDDEN_GROUPS_KEY] = encodeStrings(hidden.toList())
+            }
+        }
+    }
+
     suspend fun setGroupHidden(name: String, hidden: Boolean) {
         context.dataStore.edit { prefs ->
             val current = prefs[HIDDEN_GROUPS_KEY]?.let { decodeStrings(it).toMutableSet() } ?: mutableSetOf()

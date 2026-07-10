@@ -192,10 +192,10 @@ class SingleMarketWidget : GlanceAppWidget() {
                 text = label,
                 style = TextStyle(
                     color = GlanceTheme.colors.primary,
-                    fontSize = 18.sp,
+                    fontSize = 24.sp,
                     fontWeight = FontWeight.Bold,
                 ),
-                modifier = GlanceModifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                modifier = GlanceModifier.padding(horizontal = 12.dp, vertical = 4.dp),
             )
         }
     }

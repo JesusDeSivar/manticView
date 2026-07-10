@@ -20,6 +20,8 @@ import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.action.ActionCallback
 import androidx.glance.appwidget.action.actionRunCallback
 import androidx.glance.appwidget.action.actionStartActivity
+import androidx.glance.appwidget.lazy.LazyColumn
+import androidx.glance.appwidget.lazy.items
 import androidx.glance.appwidget.provideContent
 import androidx.glance.appwidget.updateAll
 import androidx.glance.background
@@ -155,17 +157,23 @@ class ManticWidget : GlanceAppWidget() {
                 val ordered = WatchlistRepository.orderedGroups(groupOrder, groups.keys.toList())
                 val showHeaders = groups.size > 1 ||
                     groups.keys.singleOrNull()?.let { it != WatchedMarket.DEFAULT_GROUP } == true
-                ordered.forEach { name ->
-                    if (showHeaders) {
-                        Text(
-                            text = name.uppercase(),
-                            style = TextStyle(color = GlanceTheme.colors.primary, fontSize = 9.sp, fontWeight = FontWeight.Bold),
-                            modifier = GlanceModifier.padding(bottom = 2.dp),
-                        )
-                    }
-                    groups.getValue(name).forEach { market ->
-                        MarketRow(market)
-                        Spacer(GlanceModifier.height(6.dp))
+                LazyColumn(modifier = GlanceModifier.fillMaxWidth().defaultWeight()) {
+                    ordered.forEach { name ->
+                        if (showHeaders) {
+                            item {
+                                Text(
+                                    text = name.uppercase(),
+                                    style = TextStyle(color = GlanceTheme.colors.primary, fontSize = 9.sp, fontWeight = FontWeight.Bold),
+                                    modifier = GlanceModifier.padding(bottom = 2.dp),
+                                )
+                            }
+                        }
+                        items(groups.getValue(name)) { market ->
+                            Column {
+                                MarketRow(market)
+                                Spacer(GlanceModifier.height(6.dp))
+                            }
+                        }
                     }
                 }
             }
