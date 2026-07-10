@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120">
+  <!-- ManticView mark: a lens on the future — probability curve inside a viewing circle -->
+  <circle cx="60" cy="60" r="52" fill="none" stroke="#17171E" stroke-width="6"/>
+  <!-- 50% baseline -->
+  <line x1="28" y1="66" x2="92" y2="66" stroke="#9DA4BC" stroke-width="3" stroke-linecap="round" stroke-dasharray="0.1 9"/>
+  <!-- probability curve -->
+  <path d="M26,80 C42,76 46,62 60,59 C74,56 80,44 94,38" fill="none" stroke="#4F46E5" stroke-width="7" stroke-linecap="round"/>
+  <!-- live data point -->
+  <circle cx="94" cy="38" r="6.5" fill="#4F46E5" stroke="#F9F8F6" stroke-width="3"/>
+</svg>
