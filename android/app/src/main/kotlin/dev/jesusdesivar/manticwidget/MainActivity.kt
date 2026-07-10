@@ -51,6 +51,7 @@ import dev.jesusdesivar.manticwidget.data.Market
 import dev.jesusdesivar.manticwidget.data.WatchedMarket
 import dev.jesusdesivar.manticwidget.data.WatchlistRepository
 import dev.jesusdesivar.manticwidget.widget.displayValue
+import dev.jesusdesivar.manticwidget.widget.migrateWidgetGroup
 import dev.jesusdesivar.manticwidget.widget.updateAllWidgets
 import dev.jesusdesivar.manticwidget.work.RefreshWorker
 import kotlinx.coroutines.launch
@@ -428,9 +429,12 @@ fun WatchlistScreen(repository: WatchlistRepository) {
                 TextButton(
                     enabled = !busy && newName.isNotBlank() && newName.trim() != from,
                     onClick = {
-                        val name = newName
+                        val name = newName.trim()
                         groupRename = null
-                        run { repository.renameGroup(from, name) }
+                        run {
+                            repository.renameGroup(from, name)
+                            migrateWidgetGroup(context, from, name)
+                        }
                     },
                 ) { Text("Rename") }
             },

@@ -20,6 +20,7 @@ import androidx.glance.action.actionParametersOf
 import androidx.glance.action.actionStartActivity
 import androidx.glance.action.clickable
 import androidx.glance.appwidget.GlanceAppWidget
+import androidx.glance.appwidget.GlanceAppWidgetManager
 import androidx.glance.appwidget.GlanceAppWidgetReceiver
 import androidx.glance.appwidget.action.ActionCallback
 import androidx.glance.appwidget.action.actionRunCallback
@@ -66,7 +67,10 @@ class SingleMarketWidget : GlanceAppWidget() {
             val refreshing by repository.refreshingFlow.collectAsState(initial = false)
             val prefs = currentState<Preferences>()
             val group = prefs[GROUP_KEY]
+            // A followed group can disappear (renamed away, last market
+            // removed); fall back to all markets rather than a dead widget.
             val pool = markets.filter { group == null || it.group == group }
+                .ifEmpty { markets }
             val stored = prefs[ENTRY_KEY] ?: prefs[SLUG_KEY]
             var index = pool.indexOfFirst { it.key == stored }
             if (index < 0) index = pool.indexOfFirst { it.slug == stored }
@@ -213,6 +217,21 @@ class SingleMarketWidgetReceiver : GlanceAppWidgetReceiver() {
     override val glanceAppWidget: GlanceAppWidget = SingleMarketWidget()
 }
 
+/**
+ * Points every placed single-market widget following [from] at the group's
+ * new name, so renaming a group doesn't strand its widgets.
+ */
+suspend fun migrateWidgetGroup(context: Context, from: String, to: String) {
+    val manager = GlanceAppWidgetManager(context)
+    manager.getGlanceIds(SingleMarketWidget::class.java).forEach { glanceId ->
+        updateAppWidgetState(context, glanceId) { prefs ->
+            if (prefs[SingleMarketWidget.GROUP_KEY] == from) {
+                prefs[SingleMarketWidget.GROUP_KEY] = to
+            }
+        }
+    }
+}
+
 /** ‹ › on the widget: step to the previous/next market in the followed group. */
 class CycleMarketAction : ActionCallback {
     override suspend fun onAction(context: Context, glanceId: GlanceId, parameters: ActionParameters) {
@@ -221,6 +240,7 @@ class CycleMarketAction : ActionCallback {
         updateAppWidgetState(context, glanceId) { prefs ->
             val group = prefs[SingleMarketWidget.GROUP_KEY]
             val pool = markets.filter { group == null || it.group == group }
+                .ifEmpty { markets }
             if (pool.isEmpty()) return@updateAppWidgetState
             val stored = prefs[SingleMarketWidget.ENTRY_KEY] ?: prefs[SingleMarketWidget.SLUG_KEY]
             var index = pool.indexOfFirst { it.key == stored }
