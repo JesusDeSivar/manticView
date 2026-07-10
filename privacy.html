@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ManticView — Privacy Policy</title>
+    <meta name="description" content="Privacy policy for the ManticView website, Google Sheets add-on, and Android app.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/svg+xml" href="assets/img/logo-mark.svg">
+    <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+    <div class="body-wrap">
+        <header class="site-header">
+            <div class="site-header-inner">
+                <a class="brand" href="index.html">
+                    <img src="assets/img/logo-mark.svg" alt="ManticView logo">
+                    <span class="brand-name">ManticView</span>
+                </a>
+            </div>
+        </header>
+        <main>
+            <section class="hero container">
+                <h1>Privacy Policy</h1>
+                <p>This policy covers the ManticView website (https://JesusDeSivar.github.io/manticView), the ManticView Google Sheets add-on and template, and the ManticView Android app (together, the "Service"). The short version: <strong>ManticView does not collect, store, sell, or share your personal data.</strong> Last updated July 10, 2026.</p>
+
+                <h2>What the Service does</h2>
+                <p>ManticView displays live prediction-market data from the public Manifold Markets API (https://api.manifold.markets). All market data shown by the Service is public information published by Manifold Markets, Inc., which is not affiliated with ManticView.</p>
+
+                <h2>Data the Google Sheets add-on accesses</h2>
+                <p>The add-on requests the minimum Google permissions it needs to work:</p>
+                <p><strong>Current spreadsheet only</strong> — to write the formulas and values you explicitly insert, and to refresh formulas when you ask it to. The add-on never reads or modifies other files in your Google Drive, and it never transmits the contents of your spreadsheet anywhere.</p>
+                <p><strong>Connect to an external service</strong> — solely to fetch public market data from api.manifold.markets. The add-on's manifest technically restricts network requests to that single domain. The only information sent to Manifold is the search terms, market identifiers, and public usernames you type into the add-on; requests are anonymous and carry no Google account information.</p>
+                <p><strong>Display sidebars and dialogs</strong>, and <strong>manage script triggers</strong> — to show the add-on's interface and, only if you turn it on, to run the hourly auto-refresh you requested. Turning auto-refresh off removes the trigger.</p>
+
+                <h2>Data we store</h2>
+                <p>None. The add-on keeps a short-lived (five-minute) cache of public API responses inside Google's Apps Script infrastructure to avoid repeated requests; it contains only public market data and expires automatically. There are no accounts, no analytics, no advertising identifiers, no cookies set by us, and no databases of ours holding anything about you.</p>
+                <p>The add-on's use of information received from Google APIs adheres to the <a href="https://developers.google.com/terms/api-services-user-data-policy">Google API Services User Data Policy</a>, including the Limited Use requirements.</p>
+
+                <h2>The Android app</h2>
+                <p>The Android app stores your watchlist on your device only and talks directly to the public Manifold API. It contains no analytics or tracking of any kind.</p>
+
+                <h2>Third parties</h2>
+                <p>Requests made by the Service reach Manifold Markets (market data) and, on the website, Google Fonts (typefaces). Each is governed by its own privacy policy. GitHub Pages hosts the website and may log standard web-server requests.</p>
+
+                <h2>Changes and contact</h2>
+                <p>If this policy changes, the new version will be published at this address with an updated date. Questions are welcome on the project's <a href="https://github.com/JesusDeSivar/manticView">GitHub repository</a>.</p>
+            </section>
+        </main>
+        <footer class="site-footer">
+            <div class="container">
+                <div class="footer-copyright">
+                    &copy; 2023&ndash;2026 JesusDeSivar
+                </div>
+                <ul class="footer-links list-reset">
+                    <li><a href="index.html">Home</a></li>
+                    <li><a href="https://github.com/JesusDeSivar/manticView">GitHub</a></li>
+                    <li><a href="TOS.html">Terms of Service</a></li>
+                </ul>
+                <p class="disclaimer">ManticView is an independent, open-source project. It is not affiliated with, sponsored, or endorsed by Manifold Markets, Inc.</p>
+            </div>
+        </footer>
+    </div>
+</body>
+</html>

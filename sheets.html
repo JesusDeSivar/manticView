@@ -31,7 +31,7 @@
             <div class="container">
                 <p class="overline">Guide · Google Sheets</p>
                 <h1 style="font-family:var(--serif);font-weight:600;font-size:clamp(2.2rem,4.5vw,3.2rem);line-height:1.08;color:var(--ink);margin-bottom:14px;">Probabilities as <em style="font-weight:400;color:var(--accent);">plain numbers.</em></h1>
-                <p class="lede">ManticView adds four custom functions to Google Sheets. Each one takes a Manifold market — by its slug or full URL — and returns live data your spreadsheet can chart, average, and alert on like any other value.</p>
+                <p class="lede">ManticView adds eight custom functions to Google Sheets — live probabilities, market attributes, answer tables, search, price history, and portfolios — plus a sidebar for finding markets and inserting them with one click. Everything returns plain values your spreadsheet can chart, average, and alert on.</p>
             </div>
         </section>
 
@@ -39,7 +39,7 @@
             <div class="container">
                 <span class="step-label">Step 1 · Setup — about one minute</span>
                 <h2>Get the functions into your spreadsheet</h2>
-                <p class="intro">The easy way: make a copy of the <a href="https://docs.google.com/spreadsheets/d/12rJBxcCn_i61uprzuQWXj5mz9BC8aYIlU7NlQszuqZ0/edit?usp=sharing">ready-made template</a> (<strong>File → Make a copy</strong>) — the functions come with it. Or add them to any existing spreadsheet: open <strong>Extensions → Apps Script</strong>, replace the placeholder with the contents of <a href="https://github.com/JesusDeSivar/manticView/blob/main/apps-script/Code.gs"><code style="font-family:var(--mono);font-size:0.85em;">Code.gs</code></a>, and save. No authorization prompts, no API key.</p>
+                <p class="intro">The easy way: make a copy of the <a href="https://docs.google.com/spreadsheets/d/12rJBxcCn_i61uprzuQWXj5mz9BC8aYIlU7NlQszuqZ0/edit?usp=sharing">ready-made template</a> (<strong>File → Make a copy</strong>) — the functions come with it. Or add them to any existing spreadsheet: open <strong>Extensions → Apps Script</strong>, replace the placeholder with the contents of <a href="https://github.com/JesusDeSivar/manticView/blob/main/apps-script/Code.gs"><code style="font-family:var(--mono);font-size:0.85em;">Code.gs</code></a>, and save. No authorization prompts, no API key. For the full add-on — search sidebar, one-click inserts, auto-refresh — add the <a href="https://github.com/JesusDeSivar/manticView/tree/main/apps-script">three companion files</a> too, or wait for the Google Workspace Marketplace listing, coming soon.</p>
             </div>
         </section>
 
@@ -123,7 +123,58 @@
 
         <section class="guide-section">
             <div class="container">
-                <span class="step-label">Step 5 · Freshness</span>
+                <span class="step-label">Step 5 · The shape of the odds</span>
+                <h2>=MANIFOLD_HISTORY — sparklines of probability</h2>
+                <div class="explain">
+                    <div>
+                        <div class="sheet">
+                            <div class="sheet-bar"><span class="fx">fx</span><span class="formula">=SPARKLINE(MANIFOLD_HISTORY("will-x-happen-by-2030"))</span></div>
+                            <table>
+                                <tr><th class="rn"></th><th>A</th><th>B</th></tr>
+                                <tr><th class="rn">1</th><td class="txt">Will X happen by 2030?</td><td class="sel"><svg viewBox="0 0 90 18" width="90" height="18" aria-hidden="true"><polyline points="2,14 14,12 26,13 38,9 50,10 62,6 74,7 88,4" fill="none" stroke="#4F46E5" stroke-width="2" stroke-linecap="round"/></svg></td></tr>
+                            </table>
+                        </div>
+                        <p class="sheet-note">the market's recent path, drawn by Sheets itself</p>
+                    </div>
+                    <ol class="legend">
+                        <li><strong>History as a column of numbers.</strong> <code style="font-family:var(--mono);font-size:0.85em;">MANIFOLD_HISTORY</code> samples a binary market's recent betting history — chronological, oldest first, 50 points by default.</li>
+                        <li><strong>Wrap it in SPARKLINE</strong> and the whole story fits in one cell. Pass options like <code style="font-family:var(--mono);font-size:0.85em;">{"color","#4F46E5"}</code> to style it.</li>
+                        <li><strong>Or chart it properly:</strong> spill the raw column into a range and point a real Sheets chart at it.</li>
+                    </ol>
+                </div>
+            </div>
+        </section>
+
+        <section class="guide-section">
+            <div class="container">
+                <span class="step-label">Step 6 · People, not just markets</span>
+                <h2>=MANIFOLD_PORTFOLIO, =MANIFOLD_POSITIONS, =MANIFOLD_USER</h2>
+                <div class="explain">
+                    <div>
+                        <div class="sheet">
+                            <div class="sheet-bar"><span class="fx">fx</span><span class="formula">=MANIFOLD_PORTFOLIO("YourUsername")</span></div>
+                            <table>
+                                <tr><th class="rn"></th><th>A</th><th>B</th></tr>
+                                <tr><th class="rn">1</th><td class="sel hdr">Metric</td><td class="spill hdr">Mana</td></tr>
+                                <tr><th class="rn">2</th><td class="spill txt">Balance</td><td class="spill">12,480</td></tr>
+                                <tr><th class="rn">3</th><td class="spill txt">Net worth</td><td class="spill">19,214</td></tr>
+                                <tr><th class="rn">4</th><td class="spill txt">Daily profit</td><td class="spill">+312</td></tr>
+                            </table>
+                        </div>
+                        <p class="sheet-note">public data by username — no API key, no login</p>
+                    </div>
+                    <ol class="legend">
+                        <li><strong>Track any portfolio</strong> — yours or a trader you admire. <code style="font-family:var(--mono);font-size:0.85em;">MANIFOLD_PORTFOLIO</code> spills balance, investment value, net worth, and profit.</li>
+                        <li><strong>See the positions behind it:</strong> <code style="font-family:var(--mono);font-size:0.85em;">=MANIFOLD_POSITIONS("YourUsername", 10)</code> lists open positions by value, with profit and a link per market.</li>
+                        <li><strong>Single user facts</strong> come from <code style="font-family:var(--mono);font-size:0.85em;">MANIFOLD_USER</code> — balance by default, or any public attribute by name.</li>
+                    </ol>
+                </div>
+            </div>
+        </section>
+
+        <section class="guide-section">
+            <div class="container">
+                <span class="step-label">Step 7 · Freshness</span>
                 <h2>Refreshing on your schedule</h2>
                 <div class="explain">
                     <div>
@@ -138,7 +189,7 @@
                     </div>
                     <ol class="legend">
                         <li><strong>Results are cached for five minutes</strong> to stay friendly to Manifold's free API — plenty fresh for prediction markets.</li>
-                        <li><strong>Sheets also caches custom functions,</strong> so to force a refetch, pass any changing value as the last argument — a cell containing <code style="font-family:var(--mono);font-size:0.85em;">=NOW()</code> works perfectly.</li>
+                        <li><strong>Sheets also caches custom functions,</strong> so to force a refetch, pass any changing value as the last argument — a cell containing <code style="font-family:var(--mono);font-size:0.85em;">=NOW()</code> works perfectly. With the add-on installed, <strong>Extensions → ManticView → Refresh markets now</strong> does it for every formula at once, and auto-refresh can repeat that hourly — even with the sheet closed.</li>
                         <li><strong>No key, no quota to manage:</strong> the functions read Manifold's public API anonymously.</li>
                     </ol>
                 </div>
@@ -157,6 +208,7 @@
                 <li><a href="index.html">Home</a></li>
                 <li><a href="https://github.com/JesusDeSivar/manticView">GitHub</a></li>
                 <li><a href="TOS.html">Terms of Service</a></li>
+                <li><a href="privacy.html">Privacy</a></li>
             </ul>
             <p class="disclaimer">ManticView is an independent, open-source project. It is not affiliated with, sponsored, or endorsed by Manifold Markets, Inc.</p>
         </div>
