@@ -143,9 +143,21 @@ class ManticWidget : GlanceAppWidget() {
                     modifier = GlanceModifier.clickable(actionStartActivity<MainActivity>()),
                 )
             } else {
-                visible.forEach { market ->
-                    MarketRow(market)
-                    Spacer(GlanceModifier.height(6.dp))
+                val groups = visible.groupBy { it.group }
+                val showHeaders = groups.size > 1 ||
+                    groups.keys.singleOrNull()?.let { it != WatchedMarket.DEFAULT_GROUP } == true
+                groups.forEach { (name, groupMarkets) ->
+                    if (showHeaders) {
+                        Text(
+                            text = name.uppercase(),
+                            style = TextStyle(color = GlanceTheme.colors.primary, fontSize = 9.sp, fontWeight = FontWeight.Bold),
+                            modifier = GlanceModifier.padding(bottom = 2.dp),
+                        )
+                    }
+                    groupMarkets.forEach { market ->
+                        MarketRow(market)
+                        Spacer(GlanceModifier.height(6.dp))
+                    }
                 }
             }
         }

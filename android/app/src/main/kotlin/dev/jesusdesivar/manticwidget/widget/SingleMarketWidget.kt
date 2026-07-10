@@ -64,14 +64,19 @@ class SingleMarketWidget : GlanceAppWidget() {
             val markets by repository.watchlist.collectAsState(initial = initialMarkets)
             val theme by repository.themeFlow.collectAsState(initial = initialTheme)
             val refreshing by repository.refreshingFlow.collectAsState(initial = false)
-            val slug = currentState<Preferences>()[SLUG_KEY]
-            val index = markets.indexOfFirst { it.slug == slug }
-            val market = markets.getOrNull(index)
+            val prefs = currentState<Preferences>()
+            val group = prefs[GROUP_KEY]
+            val pool = markets.filter { group == null || it.group == group }
+            val stored = prefs[ENTRY_KEY] ?: prefs[SLUG_KEY]
+            var index = pool.indexOfFirst { it.key == stored }
+            if (index < 0) index = pool.indexOfFirst { it.slug == stored }
+            if (index < 0 && pool.isNotEmpty()) index = 0
+            val market = pool.getOrNull(index)
             ManticGlanceTheme(theme) {
                 if (market == null) {
                     Unconfigured()
                 } else {
-                    MarketPanel(market, refreshing, position = "${index + 1}/${markets.size}")
+                    MarketPanel(market, refreshing, position = "${index + 1}/${pool.size}")
                 }
             }
         }
@@ -196,7 +201,11 @@ class SingleMarketWidget : GlanceAppWidget() {
     }
 
     companion object {
+        /** Legacy: configured before entries had answer-scoped identity. */
         val SLUG_KEY = stringPreferencesKey("market_slug")
+        val ENTRY_KEY = stringPreferencesKey("market_key")
+        /** Group ("watchlist") this widget follows; absent = all markets. */
+        val GROUP_KEY = stringPreferencesKey("group_filter")
     }
 }
 
@@ -204,17 +213,20 @@ class SingleMarketWidgetReceiver : GlanceAppWidgetReceiver() {
     override val glanceAppWidget: GlanceAppWidget = SingleMarketWidget()
 }
 
-/** ‹ › on the widget: step to the previous/next market in the watchlist. */
+/** ‹ › on the widget: step to the previous/next market in the followed group. */
 class CycleMarketAction : ActionCallback {
     override suspend fun onAction(context: Context, glanceId: GlanceId, parameters: ActionParameters) {
         val direction = parameters[DIRECTION] ?: 1
         val markets = WatchlistRepository(context).current()
-        if (markets.isEmpty()) return
         updateAppWidgetState(context, glanceId) { prefs ->
-            val current = prefs[SingleMarketWidget.SLUG_KEY]
-            val index = markets.indexOfFirst { it.slug == current }
-            val next = if (index < 0) 0 else (index + direction + markets.size) % markets.size
-            prefs[SingleMarketWidget.SLUG_KEY] = markets[next].slug
+            val group = prefs[SingleMarketWidget.GROUP_KEY]
+            val pool = markets.filter { group == null || it.group == group }
+            if (pool.isEmpty()) return@updateAppWidgetState
+            val stored = prefs[SingleMarketWidget.ENTRY_KEY] ?: prefs[SingleMarketWidget.SLUG_KEY]
+            var index = pool.indexOfFirst { it.key == stored }
+            if (index < 0) index = pool.indexOfFirst { it.slug == stored }
+            val next = if (index < 0) 0 else (index + direction + pool.size) % pool.size
+            prefs[SingleMarketWidget.ENTRY_KEY] = pool[next].key
         }
         SingleMarketWidget().update(context, glanceId)
     }

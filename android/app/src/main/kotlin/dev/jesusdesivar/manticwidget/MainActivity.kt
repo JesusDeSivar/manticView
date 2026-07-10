@@ -17,8 +17,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.lightColorScheme
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -31,6 +29,8 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -41,8 +41,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
 import dev.jesusdesivar.manticwidget.data.Answer
 import dev.jesusdesivar.manticwidget.data.Market
 import dev.jesusdesivar.manticwidget.data.WatchedMarket
@@ -83,6 +83,9 @@ fun ManticAppTheme(repository: WatchlistRepository, content: @Composable () -> U
     )
 }
 
+/** Which entry the answer dialog is acting on; a null key means "add as new". */
+private data class AnswerPickerRequest(val slug: String, val key: String?, val answers: List<Answer>)
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun WatchlistScreen(repository: WatchlistRepository) {
@@ -92,7 +95,8 @@ fun WatchlistScreen(repository: WatchlistRepository) {
     var input by remember { mutableStateOf("") }
     var busy by remember { mutableStateOf(false) }
     var searchResults by remember { mutableStateOf<List<Market>?>(null) }
-    var answerPicker by remember { mutableStateOf<Pair<String, List<Answer>>?>(null) }
+    var answerPicker by remember { mutableStateOf<AnswerPickerRequest?>(null) }
+    var groupPicker by remember { mutableStateOf<String?>(null) }
     val theme by repository.themeFlow.collectAsState(initial = "system")
 
     fun run(syncWidget: Boolean = true, block: suspend () -> Unit) {
@@ -220,54 +224,78 @@ fun WatchlistScreen(repository: WatchlistRepository) {
 
                 val active = markets.filterNot { it.isResolved }
                 val resolved = markets.filter { it.isResolved }
+                val groups = active.groupBy { it.group }
+                val showGroupHeaders =
+                    groups.size > 1 || groups.keys.singleOrNull()?.let { it != WatchedMarket.DEFAULT_GROUP } == true
 
-                items(active, key = { it.slug }) { market ->
-                    ListItem(
-                        headlineContent = { Text(market.question) },
-                        supportingContent = {
-                            Column {
-                                Text(market.answerText ?: market.slug)
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    PeriodChip(market, enabled = !busy) { hours ->
-                                        run { repository.setPeriod(market.slug, hours) }
-                                    }
-                                    if (market.answerId != null) {
-                                        TextButton(
+                groups.forEach { (groupName, groupMarkets) ->
+                    if (showGroupHeaders) {
+                        item(key = "group-$groupName") {
+                            Text(
+                                groupName,
+                                style = MaterialTheme.typography.titleSmall,
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.padding(top = 12.dp, bottom = 2.dp),
+                            )
+                        }
+                    }
+                    items(groupMarkets, key = { it.key }) { market ->
+                        ListItem(
+                            headlineContent = { Text(market.question) },
+                            supportingContent = {
+                                Column {
+                                    Text(market.answerText ?: market.slug)
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        PeriodChip(market, enabled = !busy) { hours ->
+                                            run { repository.setPeriod(market.key, hours) }
+                                        }
+                                        MarketMenu(
+                                            market = market,
                                             enabled = !busy,
-                                            onClick = {
+                                            onSwitchAnswer = {
                                                 run(syncWidget = false) {
-                                                    answerPicker = market.slug to repository.answersFor(market.slug)
+                                                    answerPicker = AnswerPickerRequest(
+                                                        market.slug, market.key, repository.answersFor(market.slug)
+                                                    )
                                                 }
                                             },
-                                        ) { Text("Answer…") }
+                                            onAddAnswer = {
+                                                run(syncWidget = false) {
+                                                    answerPicker = AnswerPickerRequest(
+                                                        market.slug, null, repository.answersFor(market.slug)
+                                                    )
+                                                }
+                                            },
+                                            onSetGroup = { groupPicker = market.key },
+                                        )
                                     }
                                 }
-                            }
-                        },
-                        trailingContent = {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text(
-                                    text = displayValue(market),
-                                    style = MaterialTheme.typography.titleMedium,
-                                )
-                                TextButton(
-                                    enabled = !busy,
-                                    onClick = { run { repository.remove(market.slug) } },
-                                ) { Text("✕") }
-                            }
-                        },
-                    )
+                            },
+                            trailingContent = {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text(
+                                        text = displayValue(market),
+                                        style = MaterialTheme.typography.titleMedium,
+                                    )
+                                    TextButton(
+                                        enabled = !busy,
+                                        onClick = { run { repository.remove(market.key) } },
+                                    ) { Text("✕") }
+                                }
+                            },
+                        )
+                    }
                 }
 
                 if (resolved.isNotEmpty()) {
-                    item {
+                    item(key = "resolved-header") {
                         Text(
                             "Resolved",
                             style = MaterialTheme.typography.titleSmall,
                             modifier = Modifier.padding(top = 12.dp, bottom = 4.dp),
                         )
                     }
-                    items(resolved, key = { it.slug }) { market ->
+                    items(resolved, key = { "resolved-${it.key}" }) { market ->
                         val dim = MaterialTheme.colorScheme.onSurfaceVariant
                         ListItem(
                             headlineContent = { Text(market.question, color = dim) },
@@ -287,7 +315,7 @@ fun WatchlistScreen(repository: WatchlistRepository) {
                                     )
                                     TextButton(
                                         enabled = !busy,
-                                        onClick = { run { repository.remove(market.slug) } },
+                                        onClick = { run { repository.remove(market.key) } },
                                     ) { Text("✕") }
                                 }
                             },
@@ -298,18 +326,21 @@ fun WatchlistScreen(repository: WatchlistRepository) {
         }
     }
 
-    answerPicker?.let { (slug, answers) ->
+    answerPicker?.let { request ->
         AlertDialog(
             onDismissRequest = { answerPicker = null },
-            title = { Text("Track which answer?") },
+            title = { Text(if (request.key == null) "Add which answer?" else "Track which answer?") },
             text = {
                 Column {
-                    answers.forEach { answer ->
+                    request.answers.forEach { answer ->
                         TextButton(
                             enabled = !busy,
                             onClick = {
                                 answerPicker = null
-                                run { repository.setAnswer(slug, answer.id) }
+                                run {
+                                    if (request.key == null) repository.addAnswer(request.slug, answer.id)
+                                    else repository.setAnswer(request.key, answer.id)
+                                }
                             },
                         ) {
                             Text(
@@ -323,6 +354,78 @@ fun WatchlistScreen(repository: WatchlistRepository) {
                 TextButton(onClick = { answerPicker = null }) { Text("Cancel") }
             },
         )
+    }
+
+    groupPicker?.let { key ->
+        var newGroup by remember { mutableStateOf("") }
+        val existing = markets.map { it.group }.distinct()
+        AlertDialog(
+            onDismissRequest = { groupPicker = null },
+            title = { Text("Move to group") },
+            text = {
+                Column {
+                    existing.forEach { name ->
+                        TextButton(
+                            enabled = !busy,
+                            onClick = {
+                                groupPicker = null
+                                run { repository.setGroup(key, name) }
+                            },
+                        ) { Text(name) }
+                    }
+                    OutlinedTextField(
+                        value = newGroup,
+                        onValueChange = { newGroup = it },
+                        label = { Text("New group name") },
+                        singleLine = true,
+                        modifier = Modifier.padding(top = 8.dp),
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    enabled = !busy && newGroup.isNotBlank(),
+                    onClick = {
+                        val name = newGroup
+                        groupPicker = null
+                        run { repository.setGroup(key, name) }
+                    },
+                ) { Text("Create") }
+            },
+            dismissButton = {
+                TextButton(onClick = { groupPicker = null }) { Text("Cancel") }
+            },
+        )
+    }
+}
+
+@Composable
+private fun MarketMenu(
+    market: WatchedMarket,
+    enabled: Boolean,
+    onSwitchAnswer: () -> Unit,
+    onAddAnswer: () -> Unit,
+    onSetGroup: () -> Unit,
+) {
+    var expanded by remember { mutableStateOf(false) }
+    Box {
+        TextButton(enabled = enabled, onClick = { expanded = true }) { Text("⋮") }
+        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            if (market.answerId != null) {
+                DropdownMenuItem(
+                    text = { Text("Switch answer…") },
+                    onClick = { expanded = false; onSwitchAnswer() },
+                )
+                DropdownMenuItem(
+                    text = { Text("Add another answer…") },
+                    onClick = { expanded = false; onAddAnswer() },
+                )
+            }
+            DropdownMenuItem(
+                text = { Text("Move to group…") },
+                onClick = { expanded = false; onSetGroup() },
+            )
+        }
     }
 }
 
