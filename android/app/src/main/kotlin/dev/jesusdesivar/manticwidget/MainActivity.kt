@@ -7,6 +7,9 @@ import androidx.activity.compose.setContent
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -327,25 +330,45 @@ fun WatchlistScreen(repository: WatchlistRepository) {
     }
 
     answerPicker?.let { request ->
+        var filter by remember { mutableStateOf("") }
+        val sorted = remember(request) {
+            request.answers.sortedByDescending { it.probability ?: -1.0 }
+        }
+        val shown = if (filter.isBlank()) sorted
+        else sorted.filter { it.text.contains(filter, ignoreCase = true) }
         AlertDialog(
             onDismissRequest = { answerPicker = null },
             title = { Text(if (request.key == null) "Add which answer?" else "Track which answer?") },
             text = {
                 Column {
-                    request.answers.forEach { answer ->
-                        TextButton(
-                            enabled = !busy,
-                            onClick = {
-                                answerPicker = null
-                                run {
-                                    if (request.key == null) repository.addAnswer(request.slug, answer.id)
-                                    else repository.setAnswer(request.key, answer.id)
-                                }
-                            },
-                        ) {
-                            Text(
-                                "${answer.text} — ${answer.probability?.let { "${(it * 100).roundToInt()}%" } ?: "?"}"
-                            )
+                    if (sorted.size > 8) {
+                        OutlinedTextField(
+                            value = filter,
+                            onValueChange = { filter = it },
+                            label = { Text("Filter ${sorted.size} answers") },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp),
+                        )
+                    }
+                    LazyColumn(modifier = Modifier.heightIn(max = 400.dp)) {
+                        items(shown, key = { it.id }) { answer ->
+                            TextButton(
+                                enabled = !busy,
+                                onClick = {
+                                    answerPicker = null
+                                    run {
+                                        if (request.key == null) repository.addAnswer(request.slug, answer.id)
+                                        else repository.setAnswer(request.key, answer.id)
+                                    }
+                                },
+                            ) {
+                                Text(
+                                    "${answer.text} — ${answer.probability?.let { "${(it * 100).roundToInt()}%" } ?: "?"}"
+                                )
+                            }
+                        }
+                        if (shown.isEmpty()) {
+                            item { Text("No answers match.", style = MaterialTheme.typography.bodySmall) }
                         }
                     }
                 }
@@ -364,14 +387,20 @@ fun WatchlistScreen(repository: WatchlistRepository) {
             title = { Text("Move to group") },
             text = {
                 Column {
-                    existing.forEach { name ->
-                        TextButton(
-                            enabled = !busy,
-                            onClick = {
-                                groupPicker = null
-                                run { repository.setGroup(key, name) }
-                            },
-                        ) { Text(name) }
+                    Column(
+                        modifier = Modifier
+                            .heightIn(max = 240.dp)
+                            .verticalScroll(rememberScrollState())
+                    ) {
+                        existing.forEach { name ->
+                            TextButton(
+                                enabled = !busy,
+                                onClick = {
+                                    groupPicker = null
+                                    run { repository.setGroup(key, name) }
+                                },
+                            ) { Text(name) }
+                        }
                     }
                     OutlinedTextField(
                         value = newGroup,
