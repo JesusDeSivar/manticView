@@ -4,17 +4,28 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <!-- Rising probability line, echoing the sparkline the widget draws. -->
+    <!-- ManticView mark: a lens on the future — probability curve in a viewing circle -->
+    <!-- ring -->
     <path
-        android:pathData="M30,68 L45,58 L54,63 L66,48 L78,40"
-        android:strokeColor="#34C77B"
-        android:strokeWidth="6"
-        android:strokeLineCap="round"
-        android:strokeLineJoin="round" />
+        android:pathData="M25.4,54 a28.6,28.6 0 1,0 57.2,0 a28.6,28.6 0 1,0 -57.2,0"
+        android:strokeColor="#17171E"
+        android:strokeWidth="3.5" />
+    <!-- 50% baseline (dotted; VectorDrawable has no dashes, so real dots) -->
+    <path android:pathData="M38,57.3 m-1.1,0 a1.1,1.1 0 1,0 2.2,0 a1.1,1.1 0 1,0 -2.2,0" android:fillColor="#9DA4BC" />
+    <path android:pathData="M45,57.3 m-1.1,0 a1.1,1.1 0 1,0 2.2,0 a1.1,1.1 0 1,0 -2.2,0" android:fillColor="#9DA4BC" />
+    <path android:pathData="M52,57.3 m-1.1,0 a1.1,1.1 0 1,0 2.2,0 a1.1,1.1 0 1,0 -2.2,0" android:fillColor="#9DA4BC" />
+    <path android:pathData="M59,57.3 m-1.1,0 a1.1,1.1 0 1,0 2.2,0 a1.1,1.1 0 1,0 -2.2,0" android:fillColor="#9DA4BC" />
+    <path android:pathData="M66,57.3 m-1.1,0 a1.1,1.1 0 1,0 2.2,0 a1.1,1.1 0 1,0 -2.2,0" android:fillColor="#9DA4BC" />
+    <!-- probability curve -->
     <path
-        android:pathData="M70,40 L78,40 L78,48"
-        android:strokeColor="#34C77B"
-        android:strokeWidth="6"
-        android:strokeLineCap="round"
-        android:strokeLineJoin="round" />
+        android:pathData="M35.3,65 C44.1,62.8 46.3,55.1 54,53.5 C61.7,51.8 65,45.2 72.7,41.9"
+        android:strokeColor="#4F46E5"
+        android:strokeWidth="3.9"
+        android:strokeLineCap="round" />
+    <!-- live data point -->
+    <path
+        android:pathData="M72.7,41.9 m-3.6,0 a3.6,3.6 0 1,0 7.2,0 a3.6,3.6 0 1,0 -7.2,0"
+        android:fillColor="#4F46E5"
+        android:strokeColor="#F9F8F6"
+        android:strokeWidth="1.7" />
 </vector>

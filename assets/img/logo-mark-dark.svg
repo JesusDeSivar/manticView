@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120">
+  <!-- ManticView mark, for dark surfaces -->
+  <circle cx="60" cy="60" r="52" fill="none" stroke="#E8EAF4" stroke-width="6"/>
+  <line x1="28" y1="66" x2="92" y2="66" stroke="#6B7190" stroke-width="3" stroke-linecap="round" stroke-dasharray="0.1 9"/>
+  <path d="M26,80 C42,76 46,62 60,59 C74,56 80,44 94,38" fill="none" stroke="#A5B4FC" stroke-width="7" stroke-linecap="round"/>
+  <circle cx="94" cy="38" r="6.5" fill="#A5B4FC" stroke="#131A2A" stroke-width="3"/>
+</svg>
