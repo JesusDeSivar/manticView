@@ -170,3 +170,83 @@ section.block { padding: 56px 0; }
   .features-wrap { grid-template-columns: 1fr; }
   .site-nav { display: none; }
 }
+
+/* ---------- guide pages ---------- */
+
+.guide-hero { padding: 56px 0 8px; }
+.guide-hero .lede { font-size: 1.02rem; max-width: 40em; margin-bottom: 8px; }
+.guide-section { padding: 40px 0 8px; }
+.guide-section h2 { font-family: var(--serif); font-weight: 600; font-size: 1.8rem; color: var(--ink); margin-bottom: 6px; }
+.guide-section > .container > p, .guide-section .intro { max-width: 44em; margin-bottom: 22px; }
+
+.step-label { font-family: var(--mono); font-size: 0.7rem; letter-spacing: 0.2em; color: var(--accent); text-transform: uppercase; display: block; margin-bottom: 6px; }
+
+.explain { display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 32px; align-items: start; margin: 26px 0 40px; }
+.explain.flip { grid-template-columns: 0.9fr 1.1fr; }
+.legend { list-style: none; counter-reset: n; display: flex; flex-direction: column; gap: 14px; }
+.legend li { counter-increment: n; position: relative; padding-left: 34px; font-size: 0.9rem; }
+.legend li::before {
+  content: counter(n); position: absolute; left: 0; top: 1px;
+  width: 22px; height: 22px; border-radius: 50%; background: var(--accent); color: #fff;
+  font-family: var(--mono); font-size: 0.7rem; display: flex; align-items: center; justify-content: center;
+}
+.legend li strong { color: var(--ink); }
+.n-badge {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 16px; height: 16px; border-radius: 50%; background: var(--accent); color: #fff;
+  font-family: var(--mono); font-size: 0.6rem; font-weight: 500; vertical-align: middle;
+  flex: none;
+}
+
+/* spreadsheet mockup */
+.sheet { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; box-shadow: 0 14px 36px -28px rgba(23,23,30,0.3); }
+.sheet-bar { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-bottom: 1px solid var(--border); background: var(--bg); }
+.sheet-bar .fx { font-family: var(--serif); font-style: italic; color: var(--ink-muted); font-size: 0.85rem; }
+.sheet-bar .formula { font-family: var(--mono); font-size: 0.74rem; color: var(--ink); white-space: nowrap; overflow-x: auto; }
+.sheet table { border-collapse: collapse; width: 100%; table-layout: fixed; }
+.sheet th, .sheet td { border: 1px solid var(--border-soft); font-size: 0.74rem; padding: 5px 8px; height: 26px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.sheet th { background: var(--bg); color: var(--ink-muted); font-family: var(--sans); font-weight: 500; font-size: 0.68rem; text-align: center; }
+.sheet th.rn { width: 30px; }
+.sheet td { font-family: var(--mono); color: var(--ink-mid); }
+.sheet td.txt { font-family: var(--sans); }
+.sheet td.sel { outline: 2px solid var(--accent); outline-offset: -2px; color: var(--ink); font-weight: 500; }
+.sheet td.spill { background: var(--accent-tint); }
+.sheet td.hdr { background: var(--surface-alt); font-weight: 500; color: var(--ink); }
+.sheet-note { font-family: var(--mono); font-size: 0.68rem; color: var(--ink-muted); margin-top: 8px; }
+
+/* phone frame */
+.phone { width: 320px; max-width: 100%; margin: 0 auto; background: #131A2A; border-radius: 34px; padding: 12px; box-shadow: 0 22px 48px -30px rgba(23,23,30,0.45); }
+.phone-screen { background: var(--bg); border-radius: 24px; overflow: hidden; }
+.app-bar { padding: 14px 16px 10px; font-weight: 600; color: var(--ink); font-size: 0.95rem; background: var(--surface); border-bottom: 1px solid var(--border-soft); }
+.app-body { padding: 12px 14px 16px; display: flex; flex-direction: column; gap: 8px; }
+.mock-field { border: 1px solid var(--silver); border-radius: 8px; padding: 8px 12px; font-size: 0.76rem; color: var(--ink-muted); background: var(--surface); }
+.mock-btn-row { display: flex; gap: 8px; align-items: center; font-size: 0.72rem; }
+.mock-btn { background: var(--accent); color: #fff; border-radius: 999px; padding: 5px 14px; font-weight: 600; font-size: 0.72rem; }
+.mock-btn.ghost { background: transparent; color: var(--ink); border: 1px solid var(--silver); }
+.mock-meta { display: flex; align-items: center; font-family: var(--mono); font-size: 0.62rem; color: var(--ink-muted); }
+.mock-meta .spacer { flex: 1; }
+.mock-group { display: flex; align-items: center; gap: 6px; font-weight: 600; font-size: 0.74rem; color: var(--accent); margin-top: 6px; }
+.mock-group .ops { margin-left: auto; font-family: var(--mono); font-size: 0.66rem; color: var(--ink-muted); letter-spacing: 0.08em; }
+.mock-market { background: var(--surface); border: 1px solid var(--border-soft); border-radius: 10px; padding: 8px 10px; }
+.mock-market .q { font-size: 0.76rem; color: var(--ink); display: flex; align-items: center; gap: 6px; }
+.mock-market .q .pct { margin-left: auto; font-family: var(--mono); font-weight: 600; }
+.mock-market .sub { font-size: 0.66rem; color: var(--ink-muted); display: flex; align-items: center; gap: 8px; margin-top: 2px; }
+.mock-market .sub .chip { font-family: var(--mono); color: var(--accent); }
+
+/* android widget standalone mockups */
+.widget-2x2 { background: #131A2A; border-radius: 16px; padding: 14px 16px; color: #E8EAF4; width: 250px; max-width: 100%; box-shadow: inset 0 0 0 1px rgba(157,164,188,0.25); }
+.widget-2x2 .q { font-size: 0.74rem; display: flex; gap: 8px; }
+.widget-2x2 .q .r { margin-left: auto; color: #A5B4FC; }
+.widget-2x2 .big { display: flex; align-items: baseline; gap: 8px; margin: 6px 0 2px; }
+.widget-2x2 .big .pct { font-family: var(--mono); font-weight: 600; font-size: 1.7rem; }
+.widget-2x2 .big .d { margin-left: auto; font-family: var(--mono); font-size: 0.64rem; }
+.widget-2x2 svg { display: block; width: 100%; height: auto; margin: 6px 0; }
+.widget-2x2 .foot { display: flex; align-items: center; font-family: var(--mono); font-size: 0.62rem; color: #8890A6; }
+.widget-2x2 .foot .ch { color: #A5B4FC; font-size: 1.05rem; font-weight: 600; padding: 0 8px; }
+.widget-2x2 .foot .spacer { flex: 1; }
+
+.mock-stack { display: flex; flex-direction: column; gap: 14px; align-items: center; }
+
+@media (max-width: 900px) {
+  .explain, .explain.flip { grid-template-columns: 1fr; }
+}
