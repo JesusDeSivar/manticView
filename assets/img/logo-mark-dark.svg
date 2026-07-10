@@ -1,7 +1,12 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120">
-  <!-- ManticView mark, for dark surfaces -->
+  <!-- ManticView astrolabe mark, for dark surfaces -->
   <circle cx="60" cy="60" r="52" fill="none" stroke="#E8EAF4" stroke-width="6"/>
-  <line x1="28" y1="66" x2="92" y2="66" stroke="#6B7190" stroke-width="3" stroke-linecap="round" stroke-dasharray="0.1 9"/>
-  <path d="M26,80 C42,76 46,62 60,59 C74,56 80,44 94,38" fill="none" stroke="#A5B4FC" stroke-width="7" stroke-linecap="round"/>
-  <circle cx="94" cy="38" r="6.5" fill="#A5B4FC" stroke="#131A2A" stroke-width="3"/>
+  <path d="M106,60 L101,60 M99.8,83 L95.5,80.5 M83,99.8 L80.5,95.5 M60,106 L60,101 M37,99.8 L39.5,95.5 M20.2,83 L24.5,80.5 M14,60 L19,60 M20.2,37 L24.5,39.5 M37,20.2 L39.5,24.5 M60,14 L60,19 M83,20.2 L80.5,24.5 M99.8,37 L95.5,39.5"
+        stroke="#6B7190" stroke-width="2.6" stroke-linecap="round"/>
+  <circle cx="60" cy="60" r="30" fill="none" stroke="#6B7190" stroke-width="2.2"/>
+  <circle cx="44" cy="42" r="2.4" fill="#6B7190"/>
+  <circle cx="78" cy="72" r="2.4" fill="#6B7190"/>
+  <path d="M26.3,81.6 L93.7,38.4" fill="none" stroke="#A5B4FC" stroke-width="6.5" stroke-linecap="round"/>
+  <circle cx="93.7" cy="38.4" r="6.2" fill="#A5B4FC" stroke="#131A2A" stroke-width="3"/>
+  <circle cx="60" cy="60" r="3.6" fill="#E8EAF4"/>
 </svg>
