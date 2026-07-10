@@ -3,75 +3,185 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mantic View</title>
+    <title>ManticView — Manifold prediction markets in Google Sheets &amp; on Android</title>
+    <meta name="description" content="ManticView brings live Manifold prediction market probabilities into Google Sheets and onto your Android home screen. Free, open source, no API key.">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Figtree&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="assets/css/style.css">
 </head>
 <body>
-    <div class="body-wrap">
-        <header class="site-header">
-            <div class="site-header-inner">
-                <h1 class="m-0">
-                    <a href="index.html"><img src="assets/img/logo.svg" alt="Logo">
-                    </a>
-                </h1>
+    <header class="site-header">
+        <div class="site-header-inner">
+            <a class="brand" href="index.html">
+                <img src="assets/img/logo_black_on_white.svg" alt="ManticView koi logo">
+                <span class="brand-name">ManticView</span>
+            </a>
+            <nav class="site-nav">
+                <a href="#sheets">Sheets</a>
+                <a href="#android">Android</a>
+                <a href="https://github.com/JesusDeSivar/manticView">GitHub</a>
+            </nav>
+        </div>
+    </header>
+
+    <main>
+        <section class="hero">
+            <div class="container hero-grid">
+                <div>
+                    <p class="overline">Prediction markets · Data tooling</p>
+                    <h1>The probability of everything, <em>where you work.</em></h1>
+                    <p class="lede">ManticView streams live probabilities from Manifold's prediction markets into the tools you already use — spreadsheet cells that recalculate and home-screen widgets that chart the future while you go about your day.</p>
+                    <div class="cta-row">
+                        <a class="button" href="https://github.com/JesusDeSivar/manticView/releases/latest">Get the Android app</a>
+                        <a class="button secondary" href="https://docs.google.com/spreadsheets/d/12rJBxcCn_i61uprzuQWXj5mz9BC8aYIlU7NlQszuqZ0/edit?usp=sharing">Open the Sheets template</a>
+                    </div>
+                    <p class="cta-note" style="margin-top:16px;">free · open source · no api key · MIT</p>
+                </div>
+                <figure class="hero-figure" aria-label="Example probability chart of a prediction market">
+                    <div class="figure-caption">
+                        <span class="q">Will it happen by 2030?</span>
+                        <span class="p">72%</span>
+                    </div>
+                    <svg viewBox="0 0 440 220" role="img">
+                        <!-- gridlines -->
+                        <g stroke="#E0E2EC" stroke-width="1">
+                            <line x1="36" y1="20"  x2="428" y2="20"/>
+                            <line x1="36" y1="100" x2="428" y2="100"/>
+                            <line x1="36" y1="180" x2="428" y2="180"/>
+                        </g>
+                        <g class="axis" text-anchor="end">
+                            <text x="30" y="24">100</text>
+                            <text x="30" y="104">50</text>
+                            <text x="30" y="184">0</text>
+                        </g>
+                        <!-- area fill -->
+                        <path d="M36,150 C70,142 92,156 118,148 C150,138 168,112 200,118 C230,124 252,96 284,88 C316,80 338,96 366,78 C392,62 410,66 428,64 L428,180 L36,180 Z"
+                              fill="#4F46E5" opacity="0.08"/>
+                        <!-- probability line -->
+                        <path class="hero-line" d="M36,150 C70,142 92,156 118,148 C150,138 168,112 200,118 C230,124 252,96 284,88 C316,80 338,96 366,78 C392,62 410,66 428,64"
+                              fill="none" stroke="#4F46E5" stroke-width="2.5" stroke-linecap="round"/>
+                        <!-- end marker -->
+                        <circle cx="428" cy="64" r="5" fill="#4F46E5" stroke="#FFFFFF" stroke-width="2"/>
+                        <g class="axis">
+                            <text x="36" y="204">JAN</text>
+                            <text x="220" y="204" text-anchor="middle">···</text>
+                            <text x="428" y="204" text-anchor="end">NOW</text>
+                        </g>
+                    </svg>
+                    <figcaption class="figure-foot">probability · % · seeded from real bet history</figcaption>
+                </figure>
             </div>
-        </header>
-        <main>
-            <section class="hero">
-                <h1>Mantic View</h1>
-                <p>Manifold prediction markets, directly in Google Sheets. Track probabilities, spill answer tables, and search markets with simple spreadsheet functions.</p>
-                <a class="button" href="https://docs.google.com/spreadsheets/d/12rJBxcCn_i61uprzuQWXj5mz9BC8aYIlU7NlQszuqZ0/edit?usp=sharing" >Get the template</a>
-            </section>
-            <section class="features">
-                <div class="section-inner has-bottom-divider">
-                    <div class="features-wrap">
-                        <div class="feature text-center">
-                            <div class="feature-inner">
-                                <h4 class="mt-24">=MANIFOLD_PROB()</h4>
-                                <p class="text-sm mb-0">The live probability of any YES/NO market as a plain number, ready to chart, average, or format as a percentage.</p>
+        </section>
+
+        <section class="block" id="surfaces">
+            <div class="container">
+                <div class="section-head">
+                    <h2>Two surfaces. One stream of foresight.</h2>
+                    <p>The same public Manifold data, shaped for the place you'll actually look at it.</p>
+                </div>
+                <div class="duo">
+                    <div class="card" id="sheets">
+                        <h3>In Google Sheets</h3>
+                        <p>Custom functions that treat probabilities like any other number — chart them, average them, alert on them.</p>
+<div class="code"><span class="fn">=MANIFOLD_PROB</span>(<span class="str">"will-x-happen-by-2030"</span>)
+<span class="res">→ 0.72</span>
+<span class="fn">=MANIFOLD</span>(<span class="str">"will-x-happen-by-2030"</span>, <span class="str">"closeTime"</span>)
+<span class="res">→ 12/31/2030</span>
+<span class="fn">=MANIFOLD_ANSWERS</span>(<span class="str">"who-wins-the-final"</span>)
+<span class="res">→ spills answers × probabilities</span></div>
+                        <a class="go" href="https://github.com/JesusDeSivar/manticView#setup-about-1-minute">Set it up in one minute →</a>
+                    </div>
+                    <div class="card" id="android">
+                        <h3>On your home screen</h3>
+                        <p>A TradingView-style watchlist widget, and a single-market widget with a full chart. Grouped, themeable, battery-friendly.</p>
+                        <div class="widget-mock" aria-label="Mockup of the ManticView Android watchlist widget">
+                            <div class="w-head">Mantic View <span class="w-time">· 6:25 PM</span> <span class="w-refresh">↻</span></div>
+                            <div class="w-group">ELECTIONS</div>
+                            <div class="widget-row">
+                                <div class="wq"><div class="t">Will turnout exceed 60%?</div><div class="d up">▲ 3 pts · 1d</div></div>
+                                <svg width="52" height="16" viewBox="0 0 52 16"><path d="M1,12 L10,11 L18,13 L27,8 L36,9 L44,5 L51,4" fill="none" stroke="#34C77B" stroke-width="1.6" stroke-linecap="round"/></svg>
+                                <span class="pct up">64%</span>
+                            </div>
+                            <div class="widget-row">
+                                <div class="wq"><div class="t">New party wins a seat?</div><div class="d down">▼ 5 pts · 1d</div></div>
+                                <svg width="52" height="16" viewBox="0 0 52 16"><path d="M1,4 L10,6 L18,5 L27,9 L36,8 L44,12 L51,13" fill="none" stroke="#F2767C" stroke-width="1.6" stroke-linecap="round"/></svg>
+                                <span class="pct down">18%</span>
+                            </div>
+                            <div class="w-group">SPORTS</div>
+                            <div class="widget-row">
+                                <div class="wq"><div class="t">🇫🇷 France · World Cup Final</div><div class="d up">Won</div></div>
+                                <svg width="52" height="16" viewBox="0 0 52 16"><path d="M1,10 L10,9 L18,7 L27,8 L36,4 L44,3 L51,2" fill="none" stroke="#34C77B" stroke-width="1.6" stroke-linecap="round"/></svg>
+                                <span class="pct up">Won</span>
                             </div>
                         </div>
-                        <div class="feature text-center">
-                            <div class="feature-inner">
-                                <h4 class="mt-24">=MANIFOLD()</h4>
-                                <p class="text-sm mb-0">Any market attribute: question, close date, volume, resolution and more. Paste a market URL or just its slug.</p>
-                            </div>
-                        </div>
-                        <div class="feature text-center">
-                            <div class="feature-inner">
-                                <h4 class="mt-24">=MANIFOLD_ANSWERS()</h4>
-                                <p class="text-sm mb-0">Multiple-choice markets spill into a tidy table of answers and probabilities, one row per outcome.</p>
-                            </div>
-                        </div>
-                        <div class="feature text-center">
-                            <div class="feature-inner">
-                                <h4 class="mt-24">=MANIFOLD_SEARCH()</h4>
-                                <p class="text-sm mb-0">Search all of Manifold without leaving your sheet and get back questions, probabilities and links.</p>
-                            </div>
-                        </div>
+                        <a class="go" href="https://github.com/JesusDeSivar/manticView/releases/latest">Download the APK →</a>
                     </div>
                 </div>
-            </section>
-            <section class="cta">
-                <div class="cta-inner section-inner">
-                    <h3>Prefer your own spreadsheet?</h3>
-                    <a class="button" href="https://github.com/JesusDeSivar/manticView#setup-about-1-minute">Set it up in 1 minute</a>
-                </div>
-            </section>
-        </main>
-        <footer class="site-footer">
-            <div class="container">
-                <div class="footer-copyright">
-                    &copy; 2023&ndash;2026 JesusDeSivar
-                </div>
-                <ul class="footer-links list-reset">
-                    <li><a href="TOS.html">Terms of Service</a></li>
-                </ul>
             </div>
-        </footer>
-    </div>
+        </section>
+
+        <section class="block">
+            <div class="container">
+                <div class="section-head">
+                    <h2>Built like an instrument.</h2>
+                    <p>Small, honest, and precise — the way good data tools should be.</p>
+                </div>
+                <div class="features-wrap">
+                    <div class="feature">
+                        <span class="glyph">Δ 1H–ALL</span>
+                        <h4>Honest comparison periods</h4>
+                        <p>Deltas are interpolated at the exact cutoff — "1H" means one hour, and the chart window follows.</p>
+                    </div>
+                    <div class="feature">
+                        <span class="glyph">{ GROUPS }</span>
+                        <h4>Watchlists &amp; categories</h4>
+                        <p>Organize markets into groups; reorder, rename, or hide them from the widget entirely.</p>
+                    </div>
+                    <div class="feature">
+                        <span class="glyph">A | B | C</span>
+                        <h4>Every answer, separately</h4>
+                        <p>Track several answers of the same multiple-choice market side by side, each with its own chart.</p>
+                    </div>
+                    <div class="feature">
+                        <span class="glyph">WON / LOST</span>
+                        <h4>Resolution, resolved</h4>
+                        <p>Outcomes show in plain color-coded language, linger 48 hours, then auto-archive.</p>
+                    </div>
+                    <div class="feature">
+                        <span class="glyph">◐ / ◑</span>
+                        <h4>Light &amp; dark</h4>
+                        <p>System, light, or dark — one setting themes the app and both widgets.</p>
+                    </div>
+                    <div class="feature">
+                        <span class="glyph">Ø KEYS</span>
+                        <h4>Nothing to sign up for</h4>
+                        <p>Reads the free public Manifold API. No account, no key, no telemetry, MIT-licensed.</p>
+                    </div>
+                </div>
+
+                <div class="stats">
+                    <div class="stat"><span class="n">2</span><span class="l">Home-screen widgets</span></div>
+                    <div class="stat"><span class="n">4</span><span class="l">Sheets functions</span></div>
+                    <div class="stat"><span class="n">30<small>min</small></span><span class="l">Background cadence</span></div>
+                    <div class="stat"><span class="n">0</span><span class="l">API keys required</span></div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="site-footer">
+        <div class="container">
+            <div class="footer-copyright">
+                &copy; 2023&ndash;2026 JesusDeSivar
+            </div>
+            <ul class="footer-links list-reset">
+                <li><a href="https://github.com/JesusDeSivar/manticView">GitHub</a></li>
+                <li><a href="https://github.com/JesusDeSivar/manticView/releases/latest">Releases</a></li>
+                <li><a href="TOS.html">Terms of Service</a></li>
+            </ul>
+            <p class="disclaimer">ManticView is an independent, open-source project. It is not affiliated with, sponsored, or endorsed by Manifold Markets, Inc. Market data is read from the public Manifold API; probabilities are play-money forecasts, not financial advice.</p>
+        </div>
+    </footer>
 </body>
 </html>
