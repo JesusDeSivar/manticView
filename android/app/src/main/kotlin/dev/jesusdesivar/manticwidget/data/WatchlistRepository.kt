@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.builtins.ListSerializer
+import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.json.Json
 
 /** One probability observation, so deltas can be computed over real time windows. */
@@ -20,9 +21,10 @@ import kotlinx.serialization.json.Json
 data class ProbPoint(val t: Long, val p: Double)
 
 /**
- * One tracked market plus a rolling probability history for sparklines.
- * For multiple-choice markets, one answer is tracked (the top one at add
- * time, switchable later) and [probability]/[history] refer to that answer.
+ * One tracked entry: a market, or one specific answer of a multiple-choice
+ * market — the same market can be watched several times with different
+ * answers, so identity is [key], not [slug]. Entries belong to a [group]
+ * ("watchlist"/"category"), used for widget filtering and list sections.
  */
 @Serializable
 data class WatchedMarket(
@@ -41,12 +43,26 @@ data class WatchedMarket(
      * markets, which is meaningless on screen.
      */
     val resolutionLabel: String? = null,
+    /** When the app first observed this market as resolved. */
+    val resolvedSeenMillis: Long? = null,
     /** Chronological; capped at [WatchlistRepository.HISTORY_SIZE] points. */
     val history: List<ProbPoint> = emptyList(),
     val lastUpdatedMillis: Long = 0L,
     /** Comparison window for delta and sparkline; 0 = all history. */
     val periodHours: Int = 24,
+    val group: String = DEFAULT_GROUP,
 ) {
+    /** Watchlist identity: market plus tracked answer. */
+    val key: String
+        get() = answerId?.let { "$slug:$it" } ?: slug
+
+    /**
+     * Resolved markets linger on the watchlist widget for a grace period so
+     * the outcome is seen, then drop off; they stay in the app until removed.
+     */
+    fun isArchived(now: Long = System.currentTimeMillis()): Boolean =
+        isResolved && resolvedSeenMillis != null && now - resolvedSeenMillis > ARCHIVE_AFTER_MILLIS
+
     /** Probability change over the chosen period (or the full history if shorter). */
     val delta: Double
         get() = baseline()?.let { history.last().p - it.p } ?: 0.0
@@ -95,6 +111,8 @@ data class WatchedMarket(
 
     companion object {
         const val DAY_MILLIS = 86_400_000L
+        const val ARCHIVE_AFTER_MILLIS = 2 * DAY_MILLIS
+        const val DEFAULT_GROUP = "General"
         val PERIOD_OPTIONS = listOf(1 to "1H", 6 to "6H", 24 to "1D", 168 to "1W", 720 to "1M", 0 to "ALL")
         fun periodLabel(hours: Int): String =
             PERIOD_OPTIONS.firstOrNull { it.first == hours }?.second ?: "${hours}H"
@@ -110,6 +128,70 @@ class WatchlistRepository(private val context: Context) {
     }
 
     suspend fun current(): List<WatchedMarket> = watchlist.first()
+
+    /** Group names in watchlist order, for pickers. */
+    suspend fun groups(): List<String> = current().map { it.group }.distinct()
+
+    /** User-chosen group display order; groups not listed follow at the end. */
+    val groupOrderFlow: Flow<List<String>> = context.dataStore.data.map { prefs ->
+        prefs[GROUP_ORDER_KEY]?.let { decodeStrings(it) } ?: emptyList()
+    }
+
+    /** Groups hidden from the watchlist widget (still visible in the app). */
+    val hiddenGroupsFlow: Flow<Set<String>> = context.dataStore.data.map { prefs ->
+        prefs[HIDDEN_GROUPS_KEY]?.let { decodeStrings(it).toSet() } ?: emptySet()
+    }
+
+    /** Moves a group up (-1) or down (+1) in the display order. */
+    suspend fun moveGroup(name: String, direction: Int) {
+        val present = current().map { it.group }.distinct()
+        val order = orderedGroups(groupOrderFlow.first(), present).toMutableList()
+        val from = order.indexOf(name)
+        val to = from + direction
+        if (from < 0 || to < 0 || to >= order.size) return
+        order[from] = order[to].also { order[to] = name }
+        context.dataStore.edit { it[GROUP_ORDER_KEY] = encodeStrings(order) }
+    }
+
+    /** Renames a group everywhere: entries, display order, and hidden set.
+     *  Renaming onto an existing group's name merges the two. */
+    suspend fun renameGroup(from: String, to: String) {
+        val name = to.trim()
+        if (name.isEmpty() || name == from) return
+        mutate { list -> list.map { if (it.group == from) it.copy(group = name) else it } }
+        context.dataStore.edit { prefs ->
+            val order = prefs[GROUP_ORDER_KEY]?.let { decodeStrings(it) } ?: emptyList()
+            prefs[GROUP_ORDER_KEY] = encodeStrings(order.map { if (it == from) name else it }.distinct())
+            val hidden = prefs[HIDDEN_GROUPS_KEY]?.let { decodeStrings(it).toMutableSet() } ?: mutableSetOf()
+            if (hidden.remove(from)) {
+                hidden.add(name)
+                prefs[HIDDEN_GROUPS_KEY] = encodeStrings(hidden.toList())
+            }
+        }
+    }
+
+    suspend fun setGroupHidden(name: String, hidden: Boolean) {
+        context.dataStore.edit { prefs ->
+            val current = prefs[HIDDEN_GROUPS_KEY]?.let { decodeStrings(it).toMutableSet() } ?: mutableSetOf()
+            if (hidden) current.add(name) else current.remove(name)
+            prefs[HIDDEN_GROUPS_KEY] = encodeStrings(current.toList())
+        }
+    }
+
+    /** Swaps an entry with its nearest same-group neighbor above (-1) or below (+1). */
+    suspend fun move(key: String, direction: Int) {
+        mutate { list ->
+            val index = list.indexOfFirst { it.key == key }
+            if (index < 0) return@mutate list
+            val group = list[index].group
+            var other = index + direction
+            while (other in list.indices && list[other].group != group) other += direction
+            if (other !in list.indices) return@mutate list
+            val mutable = list.toMutableList()
+            mutable[index] = mutable[other].also { mutable[other] = mutable[index] }
+            mutable
+        }
+    }
 
     /** Widget theme preference: "system", "light", or "dark". */
     val themeFlow: Flow<String> = context.dataStore.data.map { it[THEME_KEY] ?: "system" }
@@ -135,65 +217,55 @@ class WatchlistRepository(private val context: Context) {
     suspend fun add(slugOrUrl: String) {
         val market = ManifoldApi.fetchMarket(slugOrUrl)
         val topAnswer = market.answers.maxByOrNull { it.probability ?: -1.0 }
-        val (probability, answer) = when {
-            market.probability != null -> market.probability to null
-            topAnswer?.probability != null -> topAnswer.probability!! to topAnswer
+        val answer = when {
+            market.probability != null -> null
+            topAnswer?.probability != null -> topAnswer
             else -> throw IllegalArgumentException(
                 "\"${market.question}\" (${market.outcomeType}) isn't supported yet — only YES/NO and multiple-choice markets are."
             )
         }
-        val now = System.currentTimeMillis()
-        val entry = WatchedMarket(
-            slug = market.slug,
-            question = market.question,
-            url = market.url,
-            probability = probability,
-            answerId = answer?.id,
-            answerText = answer?.text,
-            isResolved = market.isResolved,
-            resolution = market.resolution,
-            resolutionLabel = resolutionLabel(market, answer?.id),
-            history = seedHistory(market.slug, answer?.id) + ProbPoint(now, probability),
-            lastUpdatedMillis = now,
-        )
-        mutate { list -> list.filterNot { it.slug == entry.slug } + entry }
+        val entry = buildEntry(market, answer, groupFor(market.slug))
+        mutate { list -> list.filterNot { it.key == entry.key } + entry }
     }
 
-    suspend fun remove(slug: String) {
-        mutate { list -> list.filterNot { it.slug == slug } }
-    }
-
-    /** Switches a multiple-choice market to track a different answer, re-seeding history. */
-    suspend fun setAnswer(slug: String, answerId: String) {
+    /** Adds another entry for the same market, tracking a different answer. */
+    suspend fun addAnswer(slug: String, answerId: String) {
         val market = ManifoldApi.fetchMarket(slug)
         val answer = market.answers.find { it.id == answerId }
             ?: throw IllegalArgumentException("Answer not found on \"${market.question}\"")
-        val probability = answer.probability
-            ?: throw IllegalArgumentException("\"${answer.text}\" has no probability")
-        val now = System.currentTimeMillis()
-        val history = seedHistory(slug, answerId) + ProbPoint(now, probability)
+        val entry = buildEntry(market, answer, groupFor(slug))
+        mutate { list -> list.filterNot { it.key == entry.key } + entry }
+    }
+
+    /** Switches an existing entry to track a different answer, re-seeding history. */
+    suspend fun setAnswer(key: String, answerId: String) {
+        val existing = current().find { it.key == key } ?: return
+        val market = ManifoldApi.fetchMarket(existing.slug)
+        val answer = market.answers.find { it.id == answerId }
+            ?: throw IllegalArgumentException("Answer not found on \"${market.question}\"")
+        val updated = buildEntry(market, answer, existing.group, existing.periodHours)
         mutate { list ->
-            list.map {
-                if (it.slug == market.slug) it.copy(
-                    probability = probability,
-                    answerId = answer.id,
-                    answerText = answer.text,
-                    isResolved = market.isResolved,
-                    resolution = market.resolution,
-                    resolutionLabel = resolutionLabel(market, answer.id),
-                    history = history,
-                    lastUpdatedMillis = now,
-                ) else it
-            }
+            list.filterNot { it.key == updated.key && it.key != key }
+                .map { if (it.key == key) updated else it }
         }
     }
 
-    /** Changes the comparison window (delta + sparkline) for one market. */
-    suspend fun setPeriod(slug: String, hours: Int) {
-        mutate { list -> list.map { if (it.slug == slug) it.copy(periodHours = hours) else it } }
+    suspend fun remove(key: String) {
+        mutate { list -> list.filterNot { it.key == key } }
     }
 
-    /** Answers available on a market, for the answer picker. */
+    /** Changes the comparison window (delta + sparkline) for one entry. */
+    suspend fun setPeriod(key: String, hours: Int) {
+        mutate { list -> list.map { if (it.key == key) it.copy(periodHours = hours) else it } }
+    }
+
+    /** Moves an entry to a (possibly new) group. */
+    suspend fun setGroup(key: String, group: String) {
+        val name = group.trim().ifEmpty { WatchedMarket.DEFAULT_GROUP }
+        mutate { list -> list.map { if (it.key == key) it.copy(group = name) else it } }
+    }
+
+    /** Answers available on a market, for the answer pickers. */
     suspend fun answersFor(slug: String): List<Answer> = ManifoldApi.fetchMarket(slug).answers
 
     suspend fun search(term: String, limit: Int = 15): List<Market> = ManifoldApi.searchMarkets(term, limit)
@@ -218,6 +290,8 @@ class WatchlistRepository(private val context: Context) {
                     isResolved = market.isResolved,
                     resolution = market.resolution,
                     resolutionLabel = resolutionLabel(market, watched.answerId),
+                    resolvedSeenMillis = watched.resolvedSeenMillis
+                        ?: if (market.isResolved) System.currentTimeMillis() else null,
                     history = (watched.history + ProbPoint(System.currentTimeMillis(), probability))
                         .takeLast(HISTORY_SIZE),
                     lastUpdatedMillis = System.currentTimeMillis(),
@@ -226,6 +300,38 @@ class WatchlistRepository(private val context: Context) {
             // Keep stale data on transient failures; the widget shows last-updated time.
             onFailure = { watched },
         )
+
+    /** Builds a fully seeded entry for a market (or one answer of it). */
+    private suspend fun buildEntry(
+        market: Market,
+        answer: Answer?,
+        group: String,
+        periodHours: Int = 24,
+    ): WatchedMarket {
+        val probability = answer?.probability ?: market.probability
+            ?: throw IllegalArgumentException("\"${answer?.text ?: market.question}\" has no probability")
+        val now = System.currentTimeMillis()
+        return WatchedMarket(
+            slug = market.slug,
+            question = market.question,
+            url = market.url,
+            probability = probability,
+            answerId = answer?.id,
+            answerText = answer?.text,
+            isResolved = market.isResolved,
+            resolution = market.resolution,
+            resolutionLabel = resolutionLabel(market, answer?.id),
+            resolvedSeenMillis = if (market.isResolved) now else null,
+            history = seedHistory(market.slug, answer?.id) + ProbPoint(now, probability),
+            lastUpdatedMillis = now,
+            periodHours = periodHours,
+            group = group,
+        )
+    }
+
+    /** New entries for a market inherit the group of its existing entries. */
+    private suspend fun groupFor(slug: String): String =
+        current().find { it.slug == slug }?.group ?: WatchedMarket.DEFAULT_GROUP
 
     /**
      * Maps the API's resolution to something displayable. Binary markets
@@ -275,11 +381,24 @@ class WatchlistRepository(private val context: Context) {
         runCatching { json.decodeFromString(ListSerializer(WatchedMarket.serializer()), raw) }
             .getOrDefault(emptyList())
 
+    private fun encodeStrings(list: List<String>): String =
+        json.encodeToString(ListSerializer(String.serializer()), list)
+
+    private fun decodeStrings(raw: String): List<String> =
+        runCatching { json.decodeFromString(ListSerializer(String.serializer()), raw) }
+            .getOrDefault(emptyList())
+
     companion object {
         const val HISTORY_SIZE = 288
         private val KEY = stringPreferencesKey("markets")
         private val THEME_KEY = stringPreferencesKey("theme")
         private val REFRESHING_KEY = booleanPreferencesKey("refreshing")
+        private val GROUP_ORDER_KEY = stringPreferencesKey("group_order")
+        private val HIDDEN_GROUPS_KEY = stringPreferencesKey("hidden_groups")
         private val json = Json { ignoreUnknownKeys = true }
+
+        /** Stored order first (existing groups only), then any new groups. */
+        fun orderedGroups(stored: List<String>, present: List<String>): List<String> =
+            stored.filter { it in present } + present.filterNot { it in stored }
     }
 }

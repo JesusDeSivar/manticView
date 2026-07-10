@@ -15,15 +15,21 @@ import androidx.glance.GlanceModifier
 import androidx.glance.GlanceTheme
 import androidx.glance.Image
 import androidx.glance.ImageProvider
+import androidx.glance.action.ActionParameters
+import androidx.glance.action.actionParametersOf
 import androidx.glance.action.actionStartActivity
 import androidx.glance.action.clickable
 import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.GlanceAppWidgetReceiver
+import androidx.glance.appwidget.action.ActionCallback
+import androidx.glance.appwidget.action.actionRunCallback
 import androidx.glance.appwidget.action.actionStartActivity
 import androidx.glance.appwidget.provideContent
+import androidx.glance.appwidget.state.updateAppWidgetState
 import androidx.glance.background
 import androidx.glance.currentState
 import androidx.glance.layout.Alignment
+import androidx.glance.layout.Box
 import androidx.glance.layout.Column
 import androidx.glance.layout.Row
 import androidx.glance.layout.Spacer
@@ -58,13 +64,19 @@ class SingleMarketWidget : GlanceAppWidget() {
             val markets by repository.watchlist.collectAsState(initial = initialMarkets)
             val theme by repository.themeFlow.collectAsState(initial = initialTheme)
             val refreshing by repository.refreshingFlow.collectAsState(initial = false)
-            val slug = currentState<Preferences>()[SLUG_KEY]
-            val market = markets.find { it.slug == slug }
+            val prefs = currentState<Preferences>()
+            val group = prefs[GROUP_KEY]
+            val pool = markets.filter { group == null || it.group == group }
+            val stored = prefs[ENTRY_KEY] ?: prefs[SLUG_KEY]
+            var index = pool.indexOfFirst { it.key == stored }
+            if (index < 0) index = pool.indexOfFirst { it.slug == stored }
+            if (index < 0 && pool.isNotEmpty()) index = 0
+            val market = pool.getOrNull(index)
             ManticGlanceTheme(theme) {
                 if (market == null) {
                     Unconfigured()
                 } else {
-                    MarketPanel(market, refreshing)
+                    MarketPanel(market, refreshing, position = "${index + 1}/${pool.size}")
                 }
             }
         }
@@ -89,7 +101,7 @@ class SingleMarketWidget : GlanceAppWidget() {
     }
 
     @Composable
-    private fun MarketPanel(market: WatchedMarket, refreshing: Boolean) {
+    private fun MarketPanel(market: WatchedMarket, refreshing: Boolean, position: String) {
         val color = displayColor(market)
         Column(
             modifier = GlanceModifier
@@ -147,20 +159,79 @@ class SingleMarketWidget : GlanceAppWidget() {
                 contentDescription = "Probability history",
                 modifier = GlanceModifier.fillMaxWidth().defaultWeight(),
             )
-            lastUpdatedLabel(listOf(market))?.let {
+            Row(
+                modifier = GlanceModifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                CycleButton("‹", direction = -1)
+                Spacer(GlanceModifier.defaultWeight())
                 Text(
-                    text = "$it · ${WatchedMarket.periodLabel(market.periodHours)}",
+                    text = listOfNotNull(
+                        lastUpdatedLabel(listOf(market)),
+                        WatchedMarket.periodLabel(market.periodHours),
+                        position,
+                    ).joinToString(" · "),
                     style = TextStyle(color = GlanceTheme.colors.onSurfaceVariant, fontSize = 9.sp),
                 )
+                Spacer(GlanceModifier.defaultWeight())
+                CycleButton("›", direction = 1)
             }
         }
     }
 
+    @Composable
+    private fun CycleButton(label: String, direction: Int) {
+        Box(
+            modifier = GlanceModifier.clickable(
+                actionRunCallback<CycleMarketAction>(
+                    actionParametersOf(CycleMarketAction.DIRECTION to direction)
+                )
+            )
+        ) {
+            Text(
+                text = label,
+                style = TextStyle(
+                    color = GlanceTheme.colors.primary,
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.Bold,
+                ),
+                modifier = GlanceModifier.padding(horizontal = 12.dp, vertical = 4.dp),
+            )
+        }
+    }
+
     companion object {
+        /** Legacy: configured before entries had answer-scoped identity. */
         val SLUG_KEY = stringPreferencesKey("market_slug")
+        val ENTRY_KEY = stringPreferencesKey("market_key")
+        /** Group ("watchlist") this widget follows; absent = all markets. */
+        val GROUP_KEY = stringPreferencesKey("group_filter")
     }
 }
 
 class SingleMarketWidgetReceiver : GlanceAppWidgetReceiver() {
     override val glanceAppWidget: GlanceAppWidget = SingleMarketWidget()
+}
+
+/** ‹ › on the widget: step to the previous/next market in the followed group. */
+class CycleMarketAction : ActionCallback {
+    override suspend fun onAction(context: Context, glanceId: GlanceId, parameters: ActionParameters) {
+        val direction = parameters[DIRECTION] ?: 1
+        val markets = WatchlistRepository(context).current()
+        updateAppWidgetState(context, glanceId) { prefs ->
+            val group = prefs[SingleMarketWidget.GROUP_KEY]
+            val pool = markets.filter { group == null || it.group == group }
+            if (pool.isEmpty()) return@updateAppWidgetState
+            val stored = prefs[SingleMarketWidget.ENTRY_KEY] ?: prefs[SingleMarketWidget.SLUG_KEY]
+            var index = pool.indexOfFirst { it.key == stored }
+            if (index < 0) index = pool.indexOfFirst { it.slug == stored }
+            val next = if (index < 0) 0 else (index + direction + pool.size) % pool.size
+            prefs[SingleMarketWidget.ENTRY_KEY] = pool[next].key
+        }
+        SingleMarketWidget().update(context, glanceId)
+    }
+
+    companion object {
+        val DIRECTION = ActionParameters.Key<Int>("direction")
+    }
 }

@@ -7,6 +7,9 @@ import androidx.activity.compose.setContent
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -17,8 +20,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.lightColorScheme
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -31,6 +32,8 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -41,8 +44,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
 import dev.jesusdesivar.manticwidget.data.Answer
 import dev.jesusdesivar.manticwidget.data.Market
 import dev.jesusdesivar.manticwidget.data.WatchedMarket
@@ -83,6 +86,9 @@ fun ManticAppTheme(repository: WatchlistRepository, content: @Composable () -> U
     )
 }
 
+/** Which entry the answer dialog is acting on; a null key means "add as new". */
+private data class AnswerPickerRequest(val slug: String, val key: String?, val answers: List<Answer>)
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun WatchlistScreen(repository: WatchlistRepository) {
@@ -92,8 +98,12 @@ fun WatchlistScreen(repository: WatchlistRepository) {
     var input by remember { mutableStateOf("") }
     var busy by remember { mutableStateOf(false) }
     var searchResults by remember { mutableStateOf<List<Market>?>(null) }
-    var answerPicker by remember { mutableStateOf<Pair<String, List<Answer>>?>(null) }
+    var answerPicker by remember { mutableStateOf<AnswerPickerRequest?>(null) }
+    var groupPicker by remember { mutableStateOf<String?>(null) }
+    var groupRename by remember { mutableStateOf<String?>(null) }
     val theme by repository.themeFlow.collectAsState(initial = "system")
+    val groupOrder by repository.groupOrderFlow.collectAsState(initial = emptyList())
+    val hiddenGroups by repository.hiddenGroupsFlow.collectAsState(initial = emptySet())
 
     fun run(syncWidget: Boolean = true, block: suspend () -> Unit) {
         scope.launch {
@@ -218,67 +228,179 @@ fun WatchlistScreen(repository: WatchlistRepository) {
                     item { HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp)) }
                 }
 
-                items(markets, key = { it.slug }) { market ->
-                    ListItem(
-                        headlineContent = { Text(market.question) },
-                        supportingContent = {
-                            Column {
+                val active = markets.filterNot { it.isResolved }
+                val resolved = markets.filter { it.isResolved }
+                val groups = active.groupBy { it.group }
+                val orderedNames = WatchlistRepository.orderedGroups(groupOrder, groups.keys.toList())
+                val showGroupHeaders =
+                    groups.size > 1 || groups.keys.singleOrNull()?.let { it != WatchedMarket.DEFAULT_GROUP } == true
+
+                orderedNames.forEach { groupName ->
+                    val groupMarkets = groups.getValue(groupName)
+                    val hidden = groupName in hiddenGroups
+                    if (showGroupHeaders) {
+                        item(key = "group-$groupName") {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.padding(top = 12.dp),
+                            ) {
                                 Text(
-                                    if (market.isResolved) "Resolved — ${market.answerText ?: market.slug}"
-                                    else market.answerText ?: market.slug
+                                    groupName + if (hidden) " · hidden on widget" else "",
+                                    style = MaterialTheme.typography.titleSmall,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.weight(1f),
                                 )
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    PeriodChip(market, enabled = !busy) { hours ->
-                                        run { repository.setPeriod(market.slug, hours) }
-                                    }
-                                    if (market.answerId != null) {
-                                        TextButton(
-                                            enabled = !busy,
-                                            onClick = {
-                                                run(syncWidget = false) {
-                                                    answerPicker = market.slug to repository.answersFor(market.slug)
-                                                }
-                                            },
-                                        ) { Text("Answer…") }
-                                    }
+                                if (orderedNames.size > 1) {
+                                    TextButton(
+                                        enabled = !busy && groupName != orderedNames.first(),
+                                        onClick = { run { repository.moveGroup(groupName, -1) } },
+                                    ) { Text("↑") }
+                                    TextButton(
+                                        enabled = !busy && groupName != orderedNames.last(),
+                                        onClick = { run { repository.moveGroup(groupName, 1) } },
+                                    ) { Text("↓") }
                                 }
-                            }
-                        },
-                        trailingContent = {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text(
-                                    text = displayValue(market),
-                                    style = MaterialTheme.typography.titleMedium,
-                                )
                                 TextButton(
                                     enabled = !busy,
-                                    onClick = { run { repository.remove(market.slug) } },
-                                ) { Text("✕") }
+                                    onClick = { groupRename = groupName },
+                                ) { Text("✎") }
+                                TextButton(
+                                    enabled = !busy,
+                                    onClick = { run { repository.setGroupHidden(groupName, !hidden) } },
+                                ) { Text(if (hidden) "Show" else "Hide") }
                             }
-                        },
-                    )
+                        }
+                    }
+                    items(groupMarkets, key = { it.key }) { market ->
+                        ListItem(
+                            headlineContent = { Text(market.question) },
+                            supportingContent = {
+                                Column {
+                                    Text(market.answerText ?: market.slug)
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        PeriodChip(market, enabled = !busy) { hours ->
+                                            run { repository.setPeriod(market.key, hours) }
+                                        }
+                                        MarketMenu(
+                                            market = market,
+                                            enabled = !busy,
+                                            onSwitchAnswer = {
+                                                run(syncWidget = false) {
+                                                    answerPicker = AnswerPickerRequest(
+                                                        market.slug, market.key, repository.answersFor(market.slug)
+                                                    )
+                                                }
+                                            },
+                                            onAddAnswer = {
+                                                run(syncWidget = false) {
+                                                    answerPicker = AnswerPickerRequest(
+                                                        market.slug, null, repository.answersFor(market.slug)
+                                                    )
+                                                }
+                                            },
+                                            onSetGroup = { groupPicker = market.key },
+                                            onMove = { direction ->
+                                                run { repository.move(market.key, direction) }
+                                            },
+                                        )
+                                    }
+                                }
+                            },
+                            trailingContent = {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text(
+                                        text = displayValue(market),
+                                        style = MaterialTheme.typography.titleMedium,
+                                    )
+                                    TextButton(
+                                        enabled = !busy,
+                                        onClick = { run { repository.remove(market.key) } },
+                                    ) { Text("✕") }
+                                }
+                            },
+                        )
+                    }
+                }
+
+                if (resolved.isNotEmpty()) {
+                    item(key = "resolved-header") {
+                        Text(
+                            "Resolved",
+                            style = MaterialTheme.typography.titleSmall,
+                            modifier = Modifier.padding(top = 12.dp, bottom = 4.dp),
+                        )
+                    }
+                    items(resolved, key = { "resolved-${it.key}" }) { market ->
+                        val dim = MaterialTheme.colorScheme.onSurfaceVariant
+                        ListItem(
+                            headlineContent = { Text(market.question, color = dim) },
+                            supportingContent = {
+                                Text(
+                                    (market.answerText ?: market.slug) +
+                                        if (market.isArchived()) "" else " · still on widget",
+                                    color = dim,
+                                )
+                            },
+                            trailingContent = {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text(
+                                        text = displayValue(market),
+                                        style = MaterialTheme.typography.titleMedium,
+                                        color = dim,
+                                    )
+                                    TextButton(
+                                        enabled = !busy,
+                                        onClick = { run { repository.remove(market.key) } },
+                                    ) { Text("✕") }
+                                }
+                            },
+                        )
+                    }
                 }
             }
         }
     }
 
-    answerPicker?.let { (slug, answers) ->
+    answerPicker?.let { request ->
+        var filter by remember { mutableStateOf("") }
+        val sorted = remember(request) {
+            request.answers.sortedByDescending { it.probability ?: -1.0 }
+        }
+        val shown = if (filter.isBlank()) sorted
+        else sorted.filter { it.text.contains(filter, ignoreCase = true) }
         AlertDialog(
             onDismissRequest = { answerPicker = null },
-            title = { Text("Track which answer?") },
+            title = { Text(if (request.key == null) "Add which answer?" else "Track which answer?") },
             text = {
                 Column {
-                    answers.forEach { answer ->
-                        TextButton(
-                            enabled = !busy,
-                            onClick = {
-                                answerPicker = null
-                                run { repository.setAnswer(slug, answer.id) }
-                            },
-                        ) {
-                            Text(
-                                "${answer.text} — ${answer.probability?.let { "${(it * 100).roundToInt()}%" } ?: "?"}"
-                            )
+                    if (sorted.size > 8) {
+                        OutlinedTextField(
+                            value = filter,
+                            onValueChange = { filter = it },
+                            label = { Text("Filter ${sorted.size} answers") },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp),
+                        )
+                    }
+                    LazyColumn(modifier = Modifier.heightIn(max = 400.dp)) {
+                        items(shown, key = { it.id }) { answer ->
+                            TextButton(
+                                enabled = !busy,
+                                onClick = {
+                                    answerPicker = null
+                                    run {
+                                        if (request.key == null) repository.addAnswer(request.slug, answer.id)
+                                        else repository.setAnswer(request.key, answer.id)
+                                    }
+                                },
+                            ) {
+                                Text(
+                                    "${answer.text} — ${answer.probability?.let { "${(it * 100).roundToInt()}%" } ?: "?"}"
+                                )
+                            }
+                        }
+                        if (shown.isEmpty()) {
+                            item { Text("No answers match.", style = MaterialTheme.typography.bodySmall) }
                         }
                     }
                 }
@@ -287,6 +409,122 @@ fun WatchlistScreen(repository: WatchlistRepository) {
                 TextButton(onClick = { answerPicker = null }) { Text("Cancel") }
             },
         )
+    }
+
+    groupRename?.let { from ->
+        var newName by remember(from) { mutableStateOf(from) }
+        AlertDialog(
+            onDismissRequest = { groupRename = null },
+            title = { Text("Rename group") },
+            text = {
+                OutlinedTextField(
+                    value = newName,
+                    onValueChange = { newName = it },
+                    label = { Text("Group name") },
+                    singleLine = true,
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    enabled = !busy && newName.isNotBlank() && newName.trim() != from,
+                    onClick = {
+                        val name = newName
+                        groupRename = null
+                        run { repository.renameGroup(from, name) }
+                    },
+                ) { Text("Rename") }
+            },
+            dismissButton = {
+                TextButton(onClick = { groupRename = null }) { Text("Cancel") }
+            },
+        )
+    }
+
+    groupPicker?.let { key ->
+        var newGroup by remember { mutableStateOf("") }
+        val existing = markets.map { it.group }.distinct()
+        AlertDialog(
+            onDismissRequest = { groupPicker = null },
+            title = { Text("Move to group") },
+            text = {
+                Column {
+                    Column(
+                        modifier = Modifier
+                            .heightIn(max = 240.dp)
+                            .verticalScroll(rememberScrollState())
+                    ) {
+                        existing.forEach { name ->
+                            TextButton(
+                                enabled = !busy,
+                                onClick = {
+                                    groupPicker = null
+                                    run { repository.setGroup(key, name) }
+                                },
+                            ) { Text(name) }
+                        }
+                    }
+                    OutlinedTextField(
+                        value = newGroup,
+                        onValueChange = { newGroup = it },
+                        label = { Text("New group name") },
+                        singleLine = true,
+                        modifier = Modifier.padding(top = 8.dp),
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    enabled = !busy && newGroup.isNotBlank(),
+                    onClick = {
+                        val name = newGroup
+                        groupPicker = null
+                        run { repository.setGroup(key, name) }
+                    },
+                ) { Text("Create") }
+            },
+            dismissButton = {
+                TextButton(onClick = { groupPicker = null }) { Text("Cancel") }
+            },
+        )
+    }
+}
+
+@Composable
+private fun MarketMenu(
+    market: WatchedMarket,
+    enabled: Boolean,
+    onSwitchAnswer: () -> Unit,
+    onAddAnswer: () -> Unit,
+    onSetGroup: () -> Unit,
+    onMove: (Int) -> Unit,
+) {
+    var expanded by remember { mutableStateOf(false) }
+    Box {
+        TextButton(enabled = enabled, onClick = { expanded = true }) { Text("⋮") }
+        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            DropdownMenuItem(
+                text = { Text("Move up") },
+                onClick = { expanded = false; onMove(-1) },
+            )
+            DropdownMenuItem(
+                text = { Text("Move down") },
+                onClick = { expanded = false; onMove(1) },
+            )
+            if (market.answerId != null) {
+                DropdownMenuItem(
+                    text = { Text("Switch answer…") },
+                    onClick = { expanded = false; onSwitchAnswer() },
+                )
+                DropdownMenuItem(
+                    text = { Text("Add another answer…") },
+                    onClick = { expanded = false; onAddAnswer() },
+                )
+            }
+            DropdownMenuItem(
+                text = { Text("Move to group…") },
+                onClick = { expanded = false; onSetGroup() },
+            )
+        }
     }
 }
 

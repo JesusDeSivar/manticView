@@ -56,12 +56,18 @@ Android budgets background work for widgets — periodic refresh below ~15–30 
 ## Roadmap
 
 - [x] In-app market search
-- [x] Multi-choice market support, with a picker for which answer to track
+- [x] Multi-choice market support: pick the tracked answer, or watch several
+      answers of the same market as separate entries
+- [x] Groups/watchlists: organize markets by category, shown as sections on
+      the watchlist widget; the 2×2 widget can follow one group (or all) and
+      cycles within it
 - [x] Per-market comparison period for delta and sparkline (1H/6H/1D/1W/1M/ALL)
 - [x] Single-market 2×2 widget with a large chart, configurable at placement
 - [x] Widget light/dark/system theme setting
+- [x] Resolved-market outcomes (Won/Lost/YES/NO) and auto-archive: resolved
+      markets linger on the watchlist widget for 48 hours, then move to the
+      app's Resolved section until removed
 - [ ] Configurable refresh interval & per-widget watchlists
-- [ ] Resolved-market styling and auto-archive
 - [ ] Play Store release
 
 ## License

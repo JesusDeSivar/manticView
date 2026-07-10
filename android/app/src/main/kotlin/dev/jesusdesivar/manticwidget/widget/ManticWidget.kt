@@ -20,6 +20,8 @@ import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.action.ActionCallback
 import androidx.glance.appwidget.action.actionRunCallback
 import androidx.glance.appwidget.action.actionStartActivity
+import androidx.glance.appwidget.lazy.LazyColumn
+import androidx.glance.appwidget.lazy.items
 import androidx.glance.appwidget.provideContent
 import androidx.glance.appwidget.updateAll
 import androidx.glance.background
@@ -116,14 +118,25 @@ class ManticWidget : GlanceAppWidget() {
             val markets by repository.watchlist.collectAsState(initial = initialMarkets)
             val theme by repository.themeFlow.collectAsState(initial = initialTheme)
             val refreshing by repository.refreshingFlow.collectAsState(initial = false)
+            val groupOrder by repository.groupOrderFlow.collectAsState(initial = emptyList())
+            val hiddenGroups by repository.hiddenGroupsFlow.collectAsState(initial = emptySet())
             ManticGlanceTheme(theme) {
-                WidgetContent(markets, refreshing)
+                WidgetContent(markets, refreshing, groupOrder, hiddenGroups)
             }
         }
     }
 
     @Composable
-    private fun WidgetContent(markets: List<WatchedMarket>, refreshing: Boolean) {
+    private fun WidgetContent(
+        markets: List<WatchedMarket>,
+        refreshing: Boolean,
+        groupOrder: List<String>,
+        hiddenGroups: Set<String>,
+    ) {
+        // Recently resolved markets linger for the grace period; older ones
+        // stay in the app's Resolved section but leave the widget. Hidden
+        // groups stay in the app too.
+        val visible = markets.filterNot { it.isArchived() || it.group in hiddenGroups }
         Column(
             modifier = GlanceModifier
                 .fillMaxSize()
@@ -132,16 +145,36 @@ class ManticWidget : GlanceAppWidget() {
         ) {
             Header(lastUpdatedLabel(markets), refreshing)
             Spacer(GlanceModifier.height(8.dp))
-            if (markets.isEmpty()) {
+            if (visible.isEmpty()) {
                 Text(
-                    text = "No markets yet — tap to add some.",
+                    text = if (markets.isEmpty()) "No markets yet — tap to add some."
+                    else "No active markets — resolved ones are in the app.",
                     style = TextStyle(color = GlanceTheme.colors.onSurfaceVariant, fontSize = 12.sp),
                     modifier = GlanceModifier.clickable(actionStartActivity<MainActivity>()),
                 )
             } else {
-                markets.forEach { market ->
-                    MarketRow(market)
-                    Spacer(GlanceModifier.height(6.dp))
+                val groups = visible.groupBy { it.group }
+                val ordered = WatchlistRepository.orderedGroups(groupOrder, groups.keys.toList())
+                val showHeaders = groups.size > 1 ||
+                    groups.keys.singleOrNull()?.let { it != WatchedMarket.DEFAULT_GROUP } == true
+                LazyColumn(modifier = GlanceModifier.fillMaxWidth().defaultWeight()) {
+                    ordered.forEach { name ->
+                        if (showHeaders) {
+                            item {
+                                Text(
+                                    text = name.uppercase(),
+                                    style = TextStyle(color = GlanceTheme.colors.primary, fontSize = 9.sp, fontWeight = FontWeight.Bold),
+                                    modifier = GlanceModifier.padding(bottom = 2.dp),
+                                )
+                            }
+                        }
+                        items(groups.getValue(name)) { market ->
+                            Column {
+                                MarketRow(market)
+                                Spacer(GlanceModifier.height(6.dp))
+                            }
+                        }
+                    }
                 }
             }
         }
