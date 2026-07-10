@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.builtins.ListSerializer
+import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.json.Json
 
 /** One probability observation, so deltas can be computed over real time windows. */
@@ -130,6 +131,50 @@ class WatchlistRepository(private val context: Context) {
 
     /** Group names in watchlist order, for pickers. */
     suspend fun groups(): List<String> = current().map { it.group }.distinct()
+
+    /** User-chosen group display order; groups not listed follow at the end. */
+    val groupOrderFlow: Flow<List<String>> = context.dataStore.data.map { prefs ->
+        prefs[GROUP_ORDER_KEY]?.let { decodeStrings(it) } ?: emptyList()
+    }
+
+    /** Groups hidden from the watchlist widget (still visible in the app). */
+    val hiddenGroupsFlow: Flow<Set<String>> = context.dataStore.data.map { prefs ->
+        prefs[HIDDEN_GROUPS_KEY]?.let { decodeStrings(it).toSet() } ?: emptySet()
+    }
+
+    /** Moves a group up (-1) or down (+1) in the display order. */
+    suspend fun moveGroup(name: String, direction: Int) {
+        val present = current().map { it.group }.distinct()
+        val order = orderedGroups(groupOrderFlow.first(), present).toMutableList()
+        val from = order.indexOf(name)
+        val to = from + direction
+        if (from < 0 || to < 0 || to >= order.size) return
+        order[from] = order[to].also { order[to] = name }
+        context.dataStore.edit { it[GROUP_ORDER_KEY] = encodeStrings(order) }
+    }
+
+    suspend fun setGroupHidden(name: String, hidden: Boolean) {
+        context.dataStore.edit { prefs ->
+            val current = prefs[HIDDEN_GROUPS_KEY]?.let { decodeStrings(it).toMutableSet() } ?: mutableSetOf()
+            if (hidden) current.add(name) else current.remove(name)
+            prefs[HIDDEN_GROUPS_KEY] = encodeStrings(current.toList())
+        }
+    }
+
+    /** Swaps an entry with its nearest same-group neighbor above (-1) or below (+1). */
+    suspend fun move(key: String, direction: Int) {
+        mutate { list ->
+            val index = list.indexOfFirst { it.key == key }
+            if (index < 0) return@mutate list
+            val group = list[index].group
+            var other = index + direction
+            while (other in list.indices && list[other].group != group) other += direction
+            if (other !in list.indices) return@mutate list
+            val mutable = list.toMutableList()
+            mutable[index] = mutable[other].also { mutable[other] = mutable[index] }
+            mutable
+        }
+    }
 
     /** Widget theme preference: "system", "light", or "dark". */
     val themeFlow: Flow<String> = context.dataStore.data.map { it[THEME_KEY] ?: "system" }
@@ -319,11 +364,24 @@ class WatchlistRepository(private val context: Context) {
         runCatching { json.decodeFromString(ListSerializer(WatchedMarket.serializer()), raw) }
             .getOrDefault(emptyList())
 
+    private fun encodeStrings(list: List<String>): String =
+        json.encodeToString(ListSerializer(String.serializer()), list)
+
+    private fun decodeStrings(raw: String): List<String> =
+        runCatching { json.decodeFromString(ListSerializer(String.serializer()), raw) }
+            .getOrDefault(emptyList())
+
     companion object {
         const val HISTORY_SIZE = 288
         private val KEY = stringPreferencesKey("markets")
         private val THEME_KEY = stringPreferencesKey("theme")
         private val REFRESHING_KEY = booleanPreferencesKey("refreshing")
+        private val GROUP_ORDER_KEY = stringPreferencesKey("group_order")
+        private val HIDDEN_GROUPS_KEY = stringPreferencesKey("hidden_groups")
         private val json = Json { ignoreUnknownKeys = true }
+
+        /** Stored order first (existing groups only), then any new groups. */
+        fun orderedGroups(stored: List<String>, present: List<String>): List<String> =
+            stored.filter { it in present } + present.filterNot { it in stored }
     }
 }

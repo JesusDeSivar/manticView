@@ -116,17 +116,25 @@ class ManticWidget : GlanceAppWidget() {
             val markets by repository.watchlist.collectAsState(initial = initialMarkets)
             val theme by repository.themeFlow.collectAsState(initial = initialTheme)
             val refreshing by repository.refreshingFlow.collectAsState(initial = false)
+            val groupOrder by repository.groupOrderFlow.collectAsState(initial = emptyList())
+            val hiddenGroups by repository.hiddenGroupsFlow.collectAsState(initial = emptySet())
             ManticGlanceTheme(theme) {
-                WidgetContent(markets, refreshing)
+                WidgetContent(markets, refreshing, groupOrder, hiddenGroups)
             }
         }
     }
 
     @Composable
-    private fun WidgetContent(markets: List<WatchedMarket>, refreshing: Boolean) {
+    private fun WidgetContent(
+        markets: List<WatchedMarket>,
+        refreshing: Boolean,
+        groupOrder: List<String>,
+        hiddenGroups: Set<String>,
+    ) {
         // Recently resolved markets linger for the grace period; older ones
-        // stay in the app's Resolved section but leave the widget.
-        val visible = markets.filterNot { it.isArchived() }
+        // stay in the app's Resolved section but leave the widget. Hidden
+        // groups stay in the app too.
+        val visible = markets.filterNot { it.isArchived() || it.group in hiddenGroups }
         Column(
             modifier = GlanceModifier
                 .fillMaxSize()
@@ -144,9 +152,10 @@ class ManticWidget : GlanceAppWidget() {
                 )
             } else {
                 val groups = visible.groupBy { it.group }
+                val ordered = WatchlistRepository.orderedGroups(groupOrder, groups.keys.toList())
                 val showHeaders = groups.size > 1 ||
                     groups.keys.singleOrNull()?.let { it != WatchedMarket.DEFAULT_GROUP } == true
-                groups.forEach { (name, groupMarkets) ->
+                ordered.forEach { name ->
                     if (showHeaders) {
                         Text(
                             text = name.uppercase(),
@@ -154,7 +163,7 @@ class ManticWidget : GlanceAppWidget() {
                             modifier = GlanceModifier.padding(bottom = 2.dp),
                         )
                     }
-                    groupMarkets.forEach { market ->
+                    groups.getValue(name).forEach { market ->
                         MarketRow(market)
                         Spacer(GlanceModifier.height(6.dp))
                     }

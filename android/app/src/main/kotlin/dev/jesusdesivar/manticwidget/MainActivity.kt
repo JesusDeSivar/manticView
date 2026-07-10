@@ -101,6 +101,8 @@ fun WatchlistScreen(repository: WatchlistRepository) {
     var answerPicker by remember { mutableStateOf<AnswerPickerRequest?>(null) }
     var groupPicker by remember { mutableStateOf<String?>(null) }
     val theme by repository.themeFlow.collectAsState(initial = "system")
+    val groupOrder by repository.groupOrderFlow.collectAsState(initial = emptyList())
+    val hiddenGroups by repository.hiddenGroupsFlow.collectAsState(initial = emptySet())
 
     fun run(syncWidget: Boolean = true, block: suspend () -> Unit) {
         scope.launch {
@@ -228,18 +230,40 @@ fun WatchlistScreen(repository: WatchlistRepository) {
                 val active = markets.filterNot { it.isResolved }
                 val resolved = markets.filter { it.isResolved }
                 val groups = active.groupBy { it.group }
+                val orderedNames = WatchlistRepository.orderedGroups(groupOrder, groups.keys.toList())
                 val showGroupHeaders =
                     groups.size > 1 || groups.keys.singleOrNull()?.let { it != WatchedMarket.DEFAULT_GROUP } == true
 
-                groups.forEach { (groupName, groupMarkets) ->
+                orderedNames.forEach { groupName ->
+                    val groupMarkets = groups.getValue(groupName)
+                    val hidden = groupName in hiddenGroups
                     if (showGroupHeaders) {
                         item(key = "group-$groupName") {
-                            Text(
-                                groupName,
-                                style = MaterialTheme.typography.titleSmall,
-                                color = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.padding(top = 12.dp, bottom = 2.dp),
-                            )
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.padding(top = 12.dp),
+                            ) {
+                                Text(
+                                    groupName + if (hidden) " · hidden on widget" else "",
+                                    style = MaterialTheme.typography.titleSmall,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.weight(1f),
+                                )
+                                if (orderedNames.size > 1) {
+                                    TextButton(
+                                        enabled = !busy && groupName != orderedNames.first(),
+                                        onClick = { run { repository.moveGroup(groupName, -1) } },
+                                    ) { Text("↑") }
+                                    TextButton(
+                                        enabled = !busy && groupName != orderedNames.last(),
+                                        onClick = { run { repository.moveGroup(groupName, 1) } },
+                                    ) { Text("↓") }
+                                }
+                                TextButton(
+                                    enabled = !busy,
+                                    onClick = { run { repository.setGroupHidden(groupName, !hidden) } },
+                                ) { Text(if (hidden) "Show" else "Hide") }
+                            }
                         }
                     }
                     items(groupMarkets, key = { it.key }) { market ->
@@ -270,6 +294,9 @@ fun WatchlistScreen(repository: WatchlistRepository) {
                                                 }
                                             },
                                             onSetGroup = { groupPicker = market.key },
+                                            onMove = { direction ->
+                                                run { repository.move(market.key, direction) }
+                                            },
                                         )
                                     }
                                 }
@@ -435,11 +462,20 @@ private fun MarketMenu(
     onSwitchAnswer: () -> Unit,
     onAddAnswer: () -> Unit,
     onSetGroup: () -> Unit,
+    onMove: (Int) -> Unit,
 ) {
     var expanded by remember { mutableStateOf(false) }
     Box {
         TextButton(enabled = enabled, onClick = { expanded = true }) { Text("⋮") }
         DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            DropdownMenuItem(
+                text = { Text("Move up") },
+                onClick = { expanded = false; onMove(-1) },
+            )
+            DropdownMenuItem(
+                text = { Text("Move down") },
+                onClick = { expanded = false; onMove(1) },
+            )
             if (market.answerId != null) {
                 DropdownMenuItem(
                     text = { Text("Switch answer…") },
