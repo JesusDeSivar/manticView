@@ -4,14 +4,16 @@
 
 ## What it does
 
-- 📌 **Watchlist widget (4×2)** showing your watched markets TradingView-style: question, live probability, and the trend over your chosen period.
-- 📊 **Single-market widget (2×2)** you configure when placing it: one market with a big probability, delta, and a large sparkline chart seeded from real bet history.
-- 📈 **Watchlist app** where you add markets by slug, URL, or search. YES/NO markets are tracked directly; multiple-choice markets track an answer of your choice.
-- 🎨 **Widget theme** picker (System / Light / Dark) and a spinner on the widgets while a manual refresh runs.
+- 📌 **Watchlist widget (4×2)** showing your watched markets TradingView-style: question, live probability, and the trend over your chosen period. Scrolls when the list outgrows the widget, with markets organized under group headers.
+- 📊 **Single-market widget (2×2)** with a big probability, delta, and a large sparkline chart seeded from real bet history. Configure it to follow one group (or all markets) and flip through them with ‹ › buttons right on the widget.
+- 🗂️ **Groups (watchlists)**: organize markets by category — reorder them, rename them (widgets follow along), and hide entire groups from the watchlist widget while keeping them in the app.
+- 📈 **Watchlist app** where you add markets by slug, URL, or search. YES/NO markets are tracked directly; for multiple-choice markets pick which answer to follow — or watch several answers of the same market side by side. Reorder anything, and pick a comparison period per market (1H / 6H / 1D / 1W / 1M / ALL) that drives both the delta and the chart window.
+- 🏁 **Resolved markets** show their outcome (green Won/YES, red Lost/NO), linger on the widget for 48 hours, then auto-archive to the app's Resolved section.
+- 🎨 **Theme** picker (System / Light / Dark) for the app and both widgets, and a spinner while a manual refresh runs.
 - 🔋 **Battery-friendly refresh**: probabilities update every 30 minutes in the background via WorkManager (only when online), with an on-demand ↻ button on the widget itself. Background work stops automatically when you remove your last widget.
 - 🔓 Uses the free public [Manifold API](https://docs.manifold.markets/api) — no account, no API key.
 
-Tapping a market on the widget opens it on manifold.markets; tapping the header opens the watchlist app.
+Tapping a market on a widget opens it on manifold.markets; tapping the header opens the watchlist app.
 
 ## Tech
 
@@ -67,7 +69,10 @@ Android budgets background work for widgets — periodic refresh below ~15–30 
 - [x] Resolved-market outcomes (Won/Lost/YES/NO) and auto-archive: resolved
       markets linger on the watchlist widget for 48 hours, then move to the
       app's Resolved section until removed
-- [ ] Configurable refresh interval & per-widget watchlists
+- [x] Group management: rename (with widget migration), reorder, hide from
+      the watchlist widget; reorder markets within a group
+- [x] Scrollable watchlist widget
+- [ ] Configurable refresh interval
 - [ ] Play Store release
 
 ## License
