@@ -127,6 +127,12 @@
   .foot { border-top: 1px solid var(--border-soft); padding: 10px 14px 12px; background: var(--bg); }
   .foot-row { display: flex; align-items: center; gap: 8px; }
   .auto { margin-left: auto; display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--ink-mid); cursor: pointer; user-select: none; }
+  select {
+    font-family: var(--sans); font-size: 11px; color: var(--ink);
+    padding: 4px 6px; border: 1px solid var(--border); border-radius: 7px; background: var(--surface);
+    outline: none; cursor: pointer;
+  }
+  select:focus { border-color: var(--accent); }
   .links { margin-top: 8px; font-size: 10px; color: var(--ink-muted); }
   .links a { color: var(--ink-muted); }
   .links a:hover { color: var(--accent); }
@@ -165,6 +171,7 @@
     <div class="search-row">
       <input type="text" id="term" placeholder="Search Manifold markets…" autofocus>
       <button class="btn" id="go">Search</button>
+      <button class="btn ghost" id="clear" title="Clear the search and start over">✕</button>
     </div>
     <div class="chips">
       <span class="chip on" id="chip-open">Open only</span>
@@ -183,7 +190,7 @@
     New here? Open <b>How to use</b> below.</p>
   </div>
 
-  <details id="help">
+  <details id="help" open>
     <summary>How to use</summary>
     <div class="sec-body">
       <p class="hint" style="padding-top:2px;">
@@ -201,8 +208,10 @@
         stack of inserts stays readable.<br><br>
         <b>5 · Portfolio.</b> Load any Manifold username below, then insert their
         summary or top positions.<br><br>
-        <b>6 · Stay fresh.</b> ↻ re-fetches every MANIFOLD formula now;
-        <b>hourly</b> keeps doing it in the background, even with the sheet closed.<br><br>
+        <b>6 · Stay fresh.</b> ↻ re-fetches every MANIFOLD formula now; the
+        <b>auto</b> menu keeps doing it in the background — every minute up to
+        daily — even with the sheet closed. (Every minute is heavy on your
+        Google quota; 10–30 min is plenty for most sheets.)<br><br>
         Full guide with pictures:
         <a href="https://jesusdesivar.github.io/manticView/sheets.html">the website</a>.
       </p>
@@ -224,7 +233,18 @@
 <div class="foot">
   <div class="foot-row">
     <button class="btn ghost" id="refresh">↻ Refresh formulas</button>
-    <label class="auto"><input type="checkbox" id="auto"> hourly</label>
+    <label class="auto" title="Background refresh cadence — runs even with the sheet closed">auto
+      <select id="auto">
+        <option value="off">off</option>
+        <option value="1m">1 min</option>
+        <option value="5m">5 min</option>
+        <option value="10m">10 min</option>
+        <option value="30m">30 min</option>
+        <option value="1h">1 hour</option>
+        <option value="6h">6 hours</option>
+        <option value="1d">daily</option>
+      </select>
+    </label>
   </div>
   <div class="links">
     <a href="https://jesusdesivar.github.io/manticView/sheets.html">Function guide</a> ·
@@ -285,9 +305,20 @@
   $('go').onclick = search;
   $('term').addEventListener('keydown', function (e) { if (e.key === 'Enter') search(); });
 
+  // Saved before any search so ✕ can restore the fresh-open state.
+  var initialHint = $('results').innerHTML;
+  $('clear').onclick = function () {
+    $('term').value = '';
+    $('results').innerHTML = initialHint;
+    $('help').open = true;
+    document.querySelector('.scroll').scrollTop = 0;
+    $('term').focus();
+  };
+
   function search() {
     var term = $('term').value.trim();
     if (!term) return;
+    $('help').open = false; // make room for results; ✕ brings it back
     var box = $('results');
     box.innerHTML = '';
     box.appendChild(el('p', 'hint')).innerHTML = '<span class="spin"></span>&nbsp; consulting the astrolabe…';
@@ -431,21 +462,34 @@
       .mvRefreshNow();
   };
 
+  var autoLabels = {
+    off: 'Auto-refresh is off.',
+    '1m': 'Auto-refresh: every minute. (Heavy on your Google quota — 10–30 min is plenty for most sheets.)',
+    '5m': 'Auto-refresh: every 5 minutes.',
+    '10m': 'Auto-refresh: every 10 minutes.',
+    '30m': 'Auto-refresh: every 30 minutes.',
+    '1h': 'Auto-refresh: every hour.',
+    '6h': 'Auto-refresh: every 6 hours.',
+    '1d': 'Auto-refresh: once a day.'
+  };
+  var autoPrev = 'off';
   $('auto').onchange = function () {
-    var cb = this;
-    cb.disabled = true;
+    var sel = this;
+    sel.disabled = true;
     google.script.run
       .withSuccessHandler(function (mode) {
-        cb.disabled = false;
-        cb.checked = mode === 'hourly';
-        toast(mode === 'hourly' ? 'Auto-refresh: every hour (even while closed).' : 'Auto-refresh is off.');
+        sel.disabled = false;
+        sel.value = mode;
+        autoPrev = mode;
+        toast(autoLabels[mode] || autoLabels.off);
       })
-      .withFailureHandler(function (e) { cb.disabled = false; cb.checked = !cb.checked; fail(e); })
-      .mvSetAutoRefresh(cb.checked ? 'hourly' : 'off');
+      .withFailureHandler(function (e) { sel.disabled = false; sel.value = autoPrev; fail(e); })
+      .mvSetAutoRefresh(sel.value);
   };
 
   google.script.run.withSuccessHandler(function (s) {
-    $('auto').checked = s.autoRefresh === 'hourly';
+    $('auto').value = s.autoRefresh || 'off';
+    autoPrev = $('auto').value;
   }).mvSidebarStatus();
 </script>
 </body>
