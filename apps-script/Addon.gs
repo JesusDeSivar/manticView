@@ -13,10 +13,11 @@
  *   About ManticView          — credits and links
  */
 
-var MV_ADDON_VERSION = '1.2.2';
+var MV_ADDON_VERSION = '1.3.0';
 var MV_WEBSITE = 'https://jesusdesivar.github.io/manticView/';
 var MV_SIDEBAR_TITLE = 'ManticView';
 var MV_MAX_REFRESH_CELLS = 500;
+var MV_LOG_MAX = 12;
 
 /* ------------------------------------------------------------------ */
 /* Lifecycle & menu                                                    */
@@ -85,11 +86,13 @@ function mvMenuRefresh() {
  * Invalidates every cached Manifold response, then forces each formula
  * cell that calls a MANIFOLD function to recalculate. Sheets memoizes
  * custom-function results by their arguments, so the only reliable way to
- * recompute is to blank the formula and write it back.
+ * recompute is to blank the formula and write it back. Every run is
+ * written to the refresh log so background auto-refreshes leave a trace.
  *
+ * @param {string} [source] 'auto' for background ticks, else 'manual'.
  * @return {number} How many cells were recalculated.
  */
-function mvRefreshNow() {
+function mvRefreshNow(source) {
   // Bump the cache salt (see cacheKey_ in Code.gs): all cached API
   // responses become unreachable at once.
   CacheService.getScriptCache().put('mv:salt', String(Date.now() % 100000000), 21600);
@@ -108,16 +111,56 @@ function mvRefreshNow() {
     seen[id] = true;
     cells.push({ range: r, formula: formula });
   }
-  if (!cells.length) return 0;
 
-  try {
-    cells.forEach(function (c) { c.range.setFormula(''); });
-    SpreadsheetApp.flush();
-  } finally {
-    cells.forEach(function (c) { c.range.setFormula(c.formula); });
-    SpreadsheetApp.flush();
+  if (cells.length) {
+    try {
+      cells.forEach(function (c) { c.range.setFormula(''); });
+      SpreadsheetApp.flush();
+    } finally {
+      cells.forEach(function (c) { c.range.setFormula(c.formula); });
+      SpreadsheetApp.flush();
+    }
   }
+
+  mvLogRefresh_(cells.length, source === 'auto' ? 'auto' : 'manual');
   return cells.length;
+}
+
+/* ------------------------------------------------------------------ */
+/* Refresh log                                                         */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Appends a refresh event to a small ring buffer in document properties,
+ * newest first, capped at MV_LOG_MAX. Gives auto-refresh a visible trace
+ * since it fires in the background with no toast. Never throws — logging
+ * must not break a refresh.
+ *
+ * @param {number} count Cells recalculated.
+ * @param {string} source 'auto' or 'manual'.
+ */
+function mvLogRefresh_(count, source) {
+  try {
+    var props = PropertiesService.getDocumentProperties();
+    var log = JSON.parse(props.getProperty('mv:refreshlog') || '[]');
+    log.unshift({ t: Date.now(), n: count, s: source });
+    if (log.length > MV_LOG_MAX) log = log.slice(0, MV_LOG_MAX);
+    props.setProperty('mv:refreshlog', JSON.stringify(log));
+  } catch (err) {
+    console.error('ManticView log write failed: ' + err);
+  }
+}
+
+/**
+ * Recent refresh events for the sidebar, newest first.
+ * @return {Array<{t:number, n:number, s:string}>}
+ */
+function mvGetRefreshLog() {
+  try {
+    return JSON.parse(PropertiesService.getDocumentProperties().getProperty('mv:refreshlog') || '[]');
+  } catch (err) {
+    return [];
+  }
 }
 
 /* ------------------------------------------------------------------ */
@@ -187,7 +230,7 @@ function mvGetAutoRefreshMode() {
 
 function mvAutoRefreshTick(e) {
   try {
-    mvRefreshNow();
+    mvRefreshNow('auto');
   } catch (err) {
     // Never let a background tick surface an error dialog.
     console.error('ManticView auto-refresh failed: ' + err);
@@ -397,7 +440,8 @@ function mvPortfolioPreview(username) {
 function mvSidebarStatus() {
   return {
     version: MV_ADDON_VERSION,
-    autoRefresh: mvGetAutoRefreshMode()
+    autoRefresh: mvGetAutoRefreshMode(),
+    log: mvGetRefreshLog()
   };
 }
 
