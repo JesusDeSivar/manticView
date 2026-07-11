@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html>
+<head>
+<base target="_blank">
+<meta charset="utf-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  /* ManticView sidebar — pearl & silver with the indigo data accent. */
+  :root {
+    --bg: #F9F8F6;
+    --surface: #FFFFFF;
+    --surface-alt: #F2F3FB;
+    --border: #E0E2EC;
+    --border-soft: #EAECF4;
+    --ink: #17171E;
+    --ink-mid: #3E4055;
+    --ink-muted: #8890A6;
+    --accent: #4F46E5;
+    --accent-deep: #4338CA;
+    --accent-tint: #EEF0FE;
+    --up: #1E8E5A;
+    --down: #D6484F;
+    --serif: 'Cormorant Garamond', Georgia, serif;
+    --sans: 'Inter', system-ui, sans-serif;
+    --mono: 'IBM Plex Mono', ui-monospace, monospace;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    background: var(--bg);
+    color: var(--ink-mid);
+    font-family: var(--sans);
+    font-size: 12.5px;
+    line-height: 1.45;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* header */
+  .head { display: flex; align-items: center; gap: 8px; padding: 12px 14px 10px; border-bottom: 1px solid var(--border-soft); background: var(--bg); }
+  .head svg { width: 26px; height: 26px; flex: none; }
+  .head .name { font-family: var(--serif); font-weight: 600; font-size: 19px; color: var(--ink); letter-spacing: 0.01em; }
+  .head .tag { margin-left: auto; font-family: var(--mono); font-size: 9px; letter-spacing: 0.18em; color: var(--ink-muted); text-transform: uppercase; }
+
+  .scroll { flex: 1; overflow-y: auto; }
+
+  /* search */
+  .search { padding: 12px 14px 8px; }
+  .search-row { display: flex; gap: 6px; }
+  input[type=text] {
+    flex: 1; min-width: 0; font-family: var(--sans); font-size: 12.5px; color: var(--ink);
+    padding: 7px 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface);
+    outline: none;
+  }
+  input[type=text]:focus { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-tint); }
+  .btn {
+    font-family: var(--sans); font-size: 12px; font-weight: 600; cursor: pointer;
+    border: none; border-radius: 8px; padding: 7px 12px;
+    background: var(--accent); color: #fff;
+  }
+  .btn:hover { background: var(--accent-deep); }
+  .btn:disabled { background: var(--border); color: var(--ink-muted); cursor: default; }
+  .btn.ghost { background: var(--surface); color: var(--ink-mid); border: 1px solid var(--border); font-weight: 500; }
+  .btn.ghost:hover { border-color: var(--accent); color: var(--accent); background: var(--surface); }
+
+  .chips { display: flex; gap: 5px; margin-top: 8px; flex-wrap: wrap; }
+  .chip {
+    font-size: 10.5px; font-weight: 500; letter-spacing: 0.02em; cursor: pointer; user-select: none;
+    padding: 3px 9px; border-radius: 99px; border: 1px solid var(--border);
+    background: var(--surface); color: var(--ink-mid);
+  }
+  .chip.on { background: var(--accent-tint); border-color: var(--accent); color: var(--accent-deep); }
+
+  /* results */
+  .results { padding: 4px 14px 10px; }
+  .hint { color: var(--ink-muted); font-size: 11.5px; padding: 10px 2px; }
+  .hint em { font-family: var(--serif); font-style: italic; font-size: 13px; }
+  .card {
+    background: var(--surface); border: 1px solid var(--border-soft); border-radius: 10px;
+    padding: 9px 10px 8px; margin-bottom: 8px;
+  }
+  .card-top { display: flex; gap: 8px; align-items: flex-start; }
+  .q { flex: 1; font-size: 12px; font-weight: 500; color: var(--ink); text-decoration: none; }
+  .q:hover { color: var(--accent-deep); }
+  .pill {
+    flex: none; font-family: var(--mono); font-size: 12.5px; font-weight: 500;
+    color: var(--accent-deep); background: var(--accent-tint); border-radius: 7px; padding: 2px 7px;
+  }
+  .pill.alt { color: var(--ink-muted); background: var(--surface-alt); font-size: 10px; padding: 4px 7px; }
+  .meta { font-family: var(--mono); font-size: 9.5px; color: var(--ink-muted); margin: 5px 0 7px; letter-spacing: 0.03em; }
+  .acts { display: flex; gap: 5px; }
+  .act {
+    font-size: 10.5px; font-weight: 500; cursor: pointer; border-radius: 7px;
+    padding: 3px 8px; border: 1px solid var(--border); background: var(--surface); color: var(--ink-mid);
+  }
+  .act:hover { border-color: var(--accent); color: var(--accent-deep); background: var(--accent-tint); }
+  .act:disabled { opacity: 0.45; cursor: default; }
+
+  /* sections */
+  details { border-top: 1px solid var(--border-soft); }
+  summary {
+    cursor: pointer; list-style: none; padding: 10px 14px;
+    font-family: var(--mono); font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--ink-muted);
+  }
+  summary::-webkit-details-marker { display: none; }
+  summary::before { content: '› '; color: var(--accent); }
+  details[open] summary::before { content: '‹ '; }
+  .sec-body { padding: 0 14px 12px; }
+
+  /* portfolio */
+  .pf-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 10px; }
+  .stat { background: var(--surface); border: 1px solid var(--border-soft); border-radius: 9px; padding: 7px 9px; }
+  .stat .k { font-size: 9.5px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-muted); }
+  .stat .v { font-family: var(--mono); font-size: 13px; color: var(--ink); margin-top: 1px; }
+  .stat .v.up { color: var(--up); }
+  .stat .v.down { color: var(--down); }
+  .pf-pos { margin-top: 8px; }
+  .pos-row { display: flex; gap: 8px; align-items: baseline; padding: 4px 2px; border-bottom: 1px dashed var(--border-soft); }
+  .pos-row a { flex: 1; font-size: 11px; color: var(--ink-mid); text-decoration: none; }
+  .pos-row a:hover { color: var(--accent-deep); }
+  .pos-row .val { font-family: var(--mono); font-size: 10.5px; color: var(--ink); }
+  .row-btns { display: flex; gap: 6px; margin-top: 10px; }
+
+  /* refresh + footer */
+  .foot { border-top: 1px solid var(--border-soft); padding: 10px 14px 12px; background: var(--bg); }
+  .foot-row { display: flex; align-items: center; gap: 8px; }
+  .auto { margin-left: auto; display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--ink-mid); cursor: pointer; user-select: none; }
+  .links { margin-top: 8px; font-size: 10px; color: var(--ink-muted); }
+  .links a { color: var(--ink-muted); }
+  .links a:hover { color: var(--accent); }
+
+  /* toast */
+  #toast {
+    position: fixed; left: 12px; right: 12px; bottom: 60px; z-index: 9;
+    background: var(--ink); color: #F9F8F6; font-size: 11.5px;
+    border-radius: 9px; padding: 8px 12px; opacity: 0; pointer-events: none;
+    transition: opacity 0.25s; text-align: center;
+  }
+  #toast.show { opacity: 0.96; }
+
+  .spin { display: inline-block; width: 11px; height: 11px; border: 2px solid var(--accent-tint); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; vertical-align: -2px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<div class="head">
+  <svg viewBox="0 0 120 120" aria-hidden="true">
+    <circle cx="60" cy="60" r="52" fill="none" stroke="#17171E" stroke-width="6"/>
+    <circle cx="60" cy="60" r="30" fill="none" stroke="#9DA4BC" stroke-width="2.2"/>
+    <circle cx="44" cy="42" r="2.4" fill="#9DA4BC"/>
+    <circle cx="78" cy="72" r="2.4" fill="#9DA4BC"/>
+    <path d="M26.3,81.6 L93.7,38.4" fill="none" stroke="#4F46E5" stroke-width="6.5" stroke-linecap="round"/>
+    <circle cx="93.7" cy="38.4" r="6.2" fill="#4F46E5" stroke="#F9F8F6" stroke-width="3"/>
+    <circle cx="60" cy="60" r="3.6" fill="#17171E"/>
+  </svg>
+  <span class="name">ManticView</span>
+  <span class="tag">Manifold</span>
+</div>
+
+<div class="scroll">
+  <div class="search">
+    <div class="search-row">
+      <input type="text" id="term" placeholder="Search Manifold markets…" autofocus>
+      <button class="btn" id="go">Search</button>
+    </div>
+    <div class="chips">
+      <span class="chip on" id="chip-open">Open only</span>
+      <span class="chip on" data-type="ALL">All types</span>
+      <span class="chip" data-type="BINARY">Yes/No</span>
+      <span class="chip" data-type="MULTIPLE_CHOICE">Multi</span>
+    </div>
+  </div>
+
+  <div class="results" id="results">
+    <p class="hint"><em>Sight a market, set it in your sheet.</em><br>
+    Search above, pick a cell, then insert a live probability, a full
+    market row, an answers table, or a sparkline.</p>
+  </div>
+
+  <details id="pf">
+    <summary>Portfolio</summary>
+    <div class="sec-body">
+      <div class="search-row">
+        <input type="text" id="pf-user" placeholder="Manifold username…">
+        <button class="btn" id="pf-go">Load</button>
+      </div>
+      <div id="pf-out"></div>
+    </div>
+  </details>
+</div>
+
+<div class="foot">
+  <div class="foot-row">
+    <button class="btn ghost" id="refresh">↻ Refresh formulas</button>
+    <label class="auto"><input type="checkbox" id="auto"> hourly</label>
+  </div>
+  <div class="links">
+    <a href="https://jesusdesivar.github.io/manticView/sheets.html">Function guide</a> ·
+    <a href="https://manifold.markets">Manifold</a> · data refreshes every 5 min
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+  var $ = function (id) { return document.getElementById(id); };
+  var state = { openOnly: true, type: 'ALL' };
+
+  /* ---------- helpers ---------- */
+
+  function el(tag, cls, text) {
+    var e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text !== undefined) e.textContent = text;
+    return e;
+  }
+  function toast(msg, isErr) {
+    var t = $('toast');
+    t.textContent = msg;
+    t.style.background = isErr ? '#D6484F' : '#17171E';
+    t.classList.add('show');
+    clearTimeout(t._h);
+    t._h = setTimeout(function () { t.classList.remove('show'); }, 2600);
+  }
+  function fail(err) { toast((err && err.message) || 'Something went wrong.', true); }
+  function pct(p) { return (p * 100).toFixed(p >= 0.995 || p < 0.095 ? 1 : 0) + '%'; }
+  function mana(v) {
+    var a = Math.abs(v);
+    var s = a >= 1e6 ? (v / 1e6).toFixed(1) + 'M' : a >= 1e4 ? (v / 1e3).toFixed(0) + 'k' : a >= 1e3 ? (v / 1e3).toFixed(1) + 'k' : v.toFixed(0);
+    return 'Ɱ' + s;
+  }
+  function closeStr(t) {
+    if (!t) return '';
+    var d = new Date(t);
+    return (d < new Date() ? 'closed ' : 'closes ') + d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+  }
+
+  /* ---------- search ---------- */
+
+  document.querySelectorAll('.chip[data-type]').forEach(function (c) {
+    c.onclick = function () {
+      document.querySelectorAll('.chip[data-type]').forEach(function (o) { o.classList.remove('on'); });
+      c.classList.add('on');
+      state.type = c.dataset.type;
+      if ($('term').value.trim()) search();
+    };
+  });
+  $('chip-open').onclick = function () {
+    state.openOnly = !state.openOnly;
+    this.classList.toggle('on', state.openOnly);
+    if ($('term').value.trim()) search();
+  };
+  $('go').onclick = search;
+  $('term').addEventListener('keydown', function (e) { if (e.key === 'Enter') search(); });
+
+  function search() {
+    var term = $('term').value.trim();
+    if (!term) return;
+    var box = $('results');
+    box.innerHTML = '';
+    box.appendChild(el('p', 'hint')).innerHTML = '<span class="spin"></span>&nbsp; consulting the astrolabe…';
+    google.script.run
+      .withSuccessHandler(render)
+      .withFailureHandler(function (e) { box.innerHTML = ''; box.appendChild(el('p', 'hint', 'Search failed: ' + e.message)); })
+      .mvSearch(term, { openOnly: state.openOnly, type: state.type });
+  }
+
+  function render(markets) {
+    var box = $('results');
+    box.innerHTML = '';
+    if (!markets.length) {
+      box.appendChild(el('p', 'hint', 'No markets found — try different words or turn off the filters.'));
+      return;
+    }
+    markets.forEach(function (m) {
+      var card = el('div', 'card');
+      var top = el('div', 'card-top');
+      var q = el('a', 'q', m.question);
+      q.href = m.url;
+      top.appendChild(q);
+      var isBinary = m.outcomeType === 'BINARY' && m.probability !== null;
+      top.appendChild(isBinary ? el('span', 'pill', pct(m.probability))
+                               : el('span', 'pill alt', m.outcomeType === 'MULTIPLE_CHOICE' ? 'multi' : m.outcomeType.toLowerCase().replace(/_/g, ' ')));
+      card.appendChild(top);
+
+      var bits = [];
+      if (m.uniqueBettorCount) bits.push(m.uniqueBettorCount + ' traders');
+      if (m.volume24Hours >= 1) bits.push(mana(m.volume24Hours) + ' 24h');
+      if (m.isResolved) bits.push('resolved'); else if (m.closeTime) bits.push(closeStr(m.closeTime));
+      card.appendChild(el('div', 'meta', bits.join(' · ')));
+
+      var acts = el('div', 'acts');
+      function act(label, title, kind, enabled) {
+        var b = el('button', 'act', label);
+        b.title = title;
+        b.disabled = !enabled;
+        b.onclick = function () { insert(kind, m, b); };
+        acts.appendChild(b);
+      }
+      act('%', 'Insert live probability at the selected cell', 'prob', isBinary);
+      act('Row', 'Insert question · probability · 24h volume · close date · link', 'row', true);
+      act('Answers', 'Insert the answers table (spills)', 'answers', m.outcomeType !== 'BINARY');
+      act('Spark', 'Insert a probability-history sparkline', 'sparkline', isBinary);
+      card.appendChild(acts);
+      box.appendChild(card);
+    });
+  }
+
+  function insert(kind, m, btn) {
+    btn.disabled = true;
+    google.script.run
+      .withSuccessHandler(function (a1) { btn.disabled = false; toast('Inserted at ' + a1 + ' ✓'); })
+      .withFailureHandler(function (e) { btn.disabled = false; fail(e); })
+      .mvInsertMarket(kind, m.slug, { isBinary: m.outcomeType === 'BINARY', url: m.url });
+  }
+
+  /* ---------- portfolio ---------- */
+
+  $('pf-go').onclick = loadPortfolio;
+  $('pf-user').addEventListener('keydown', function (e) { if (e.key === 'Enter') loadPortfolio(); });
+
+  function loadPortfolio() {
+    var name = $('pf-user').value.trim();
+    if (!name) return;
+    var out = $('pf-out');
+    out.innerHTML = '';
+    out.appendChild(el('p', 'hint')).innerHTML = '<span class="spin"></span>&nbsp; loading portfolio…';
+    google.script.run
+      .withSuccessHandler(renderPortfolio)
+      .withFailureHandler(function (e) { out.innerHTML = ''; out.appendChild(el('p', 'hint', 'Could not load "' + name + '": ' + e.message)); })
+      .mvPortfolioPreview(name);
+  }
+
+  function renderPortfolio(p) {
+    var out = $('pf-out');
+    out.innerHTML = '';
+
+    var stats = el('div', 'pf-stats');
+    function stat(k, v, signed) {
+      var s = el('div', 'stat');
+      s.appendChild(el('div', 'k', k));
+      var cls = 'v' + (signed ? (v >= 0 ? ' up' : ' down') : '');
+      s.appendChild(el('div', cls, (signed && v >= 0 ? '+' : '') + mana(v)));
+      stats.appendChild(s);
+    }
+    stat('Net worth', p.netWorth);
+    stat('Balance', p.balance);
+    stat('Daily profit', p.dailyProfit, true);
+    stat('All-time profit', p.allTimeProfit, true);
+    out.appendChild(stats);
+
+    if (p.positions.length) {
+      var pos = el('div', 'pf-pos');
+      p.positions.forEach(function (x) {
+        var row = el('div', 'pos-row');
+        var a = el('a', '', x.question);
+        a.href = x.url;
+        row.appendChild(a);
+        row.appendChild(el('span', 'val', mana(x.value)));
+        pos.appendChild(row);
+      });
+      out.appendChild(pos);
+    }
+
+    var btns = el('div', 'row-btns');
+    function ib(label, kind) {
+      var b = el('button', 'act', label);
+      b.onclick = function () {
+        b.disabled = true;
+        google.script.run
+          .withSuccessHandler(function (a1) { b.disabled = false; toast('Inserted at ' + a1 + ' ✓'); })
+          .withFailureHandler(function (e) { b.disabled = false; fail(e); })
+          .mvInsertUser(kind, p.username);
+      };
+      btns.appendChild(b);
+    }
+    ib('Insert summary', 'portfolio');
+    ib('Insert positions', 'positions');
+    out.appendChild(btns);
+  }
+
+  /* ---------- refresh ---------- */
+
+  $('refresh').onclick = function () {
+    var b = this;
+    b.disabled = true;
+    b.textContent = 'Refreshing…';
+    google.script.run
+      .withSuccessHandler(function (n) {
+        b.disabled = false; b.textContent = '↻ Refresh formulas';
+        toast(n ? 'Refreshed ' + n + ' formula cell' + (n === 1 ? '' : 's') + ' ✓' : 'No Manifold formulas found yet.');
+      })
+      .withFailureHandler(function (e) { b.disabled = false; b.textContent = '↻ Refresh formulas'; fail(e); })
+      .mvRefreshNow();
+  };
+
+  $('auto').onchange = function () {
+    var cb = this;
+    cb.disabled = true;
+    google.script.run
+      .withSuccessHandler(function (mode) {
+        cb.disabled = false;
+        cb.checked = mode === 'hourly';
+        toast(mode === 'hourly' ? 'Auto-refresh: every hour (even while closed).' : 'Auto-refresh is off.');
+      })
+      .withFailureHandler(function (e) { cb.disabled = false; cb.checked = !cb.checked; fail(e); })
+      .mvSetAutoRefresh(cb.checked ? 'hourly' : 'off');
+  };
+
+  google.script.run.withSuccessHandler(function (s) {
+    $('auto').checked = s.autoRefresh === 'hourly';
+  }).mvSidebarStatus();
+</script>
+</body>
+</html>
