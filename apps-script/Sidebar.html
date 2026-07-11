@@ -171,14 +171,43 @@
       <span class="chip on" data-type="ALL">All types</span>
       <span class="chip" data-type="BINARY">Yes/No</span>
       <span class="chip" data-type="MULTIPLE_CHOICE">Multi</span>
+      <label class="auto" style="margin-left:auto;" title="Also write the market's title (or the @username) beside what you insert">
+        <input type="checkbox" id="withtitle" checked> titles
+      </label>
     </div>
   </div>
 
   <div class="results" id="results">
     <p class="hint"><em>Sight a market, set it in your sheet.</em><br>
-    Search above, pick a cell, then insert a live probability, a full
-    market row, an answers table, or a sparkline.</p>
+    ① Pick a cell &nbsp;② Search above &nbsp;③ Insert.<br>
+    New here? Open <b>How to use</b> below.</p>
   </div>
+
+  <details id="help">
+    <summary>How to use</summary>
+    <div class="sec-body">
+      <p class="hint" style="padding-top:2px;">
+        <b>1 · Pick a cell.</b> Inserts always land at the selected cell, and the
+        selection moves below afterwards so repeated inserts stack neatly.<br><br>
+        <b>2 · Search.</b> Type words ("world cup 2030") and filter with the chips —
+        open markets only, Yes/No, or multiple choice.<br><br>
+        <b>3 · Insert.</b> On each result:
+        <b>%</b> a live probability ·
+        <b>Row</b> question, probability, 24h volume, close date, link ·
+        <b>Answers</b> the answers × probabilities table (spills downward) ·
+        <b>Spark</b> a mini price-history chart.<br><br>
+        <b>4 · titles.</b> With the <b>titles</b> toggle on, the market's name is
+        written beside the number (and portfolios get an @username heading), so a
+        stack of inserts stays readable.<br><br>
+        <b>5 · Portfolio.</b> Load any Manifold username below, then insert their
+        summary or top positions.<br><br>
+        <b>6 · Stay fresh.</b> ↻ re-fetches every MANIFOLD formula now;
+        <b>hourly</b> keeps doing it in the background, even with the sheet closed.<br><br>
+        Full guide with pictures:
+        <a href="https://jesusdesivar.github.io/manticView/sheets.html">the website</a>.
+      </p>
+    </div>
+  </details>
 
   <details id="pf">
     <summary>Portfolio</summary>
@@ -314,7 +343,12 @@
     google.script.run
       .withSuccessHandler(function (a1) { btn.disabled = false; toast('Inserted at ' + a1 + ' ✓'); })
       .withFailureHandler(function (e) { btn.disabled = false; fail(e); })
-      .mvInsertMarket(kind, m.slug, { isBinary: m.outcomeType === 'BINARY', url: m.url });
+      .mvInsertMarket(kind, m.slug, {
+        isBinary: m.outcomeType === 'BINARY',
+        url: m.url,
+        question: m.question,
+        withTitle: $('withtitle').checked
+      });
   }
 
   /* ---------- portfolio ---------- */
@@ -373,7 +407,7 @@
         google.script.run
           .withSuccessHandler(function (a1) { b.disabled = false; toast('Inserted at ' + a1 + ' ✓'); })
           .withFailureHandler(function (e) { b.disabled = false; fail(e); })
-          .mvInsertUser(kind, p.username);
+          .mvInsertUser(kind, p.username, { withLabel: $('withtitle').checked });
       };
       btns.appendChild(b);
     }

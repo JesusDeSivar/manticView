@@ -13,7 +13,7 @@
  *   About ManticView          — credits and links
  */
 
-var MV_ADDON_VERSION = '1.0.0';
+var MV_ADDON_VERSION = '1.1.0';
 var MV_WEBSITE = 'https://jesusdesivar.github.io/manticView/';
 var MV_SIDEBAR_TITLE = 'ManticView';
 var MV_MAX_REFRESH_CELLS = 500;
@@ -130,14 +130,14 @@ function mvAutoRefreshOff() {
 }
 
 function mvSetAutoRefresh(mode) {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  ScriptApp.getUserTriggers(ss).forEach(function (t) {
+  // Time-driven triggers are their own builder family: .timeBased() chains
+  // directly off newTrigger(). (.forSpreadsheet() is only for onOpen/onEdit/
+  // onChange triggers and cannot be combined with timeBased.)
+  ScriptApp.getProjectTriggers().forEach(function (t) {
     if (t.getHandlerFunction() === 'mvAutoRefreshTick') ScriptApp.deleteTrigger(t);
   });
   if (mode === 'hourly') {
-    // Editor add-on time triggers may fire at most once per hour.
     ScriptApp.newTrigger('mvAutoRefreshTick')
-      .forSpreadsheet(ss)
       .timeBased()
       .everyHours(1)
       .create();
@@ -146,8 +146,7 @@ function mvSetAutoRefresh(mode) {
 }
 
 function mvGetAutoRefreshMode() {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var hasTrigger = ScriptApp.getUserTriggers(ss).some(function (t) {
+  var hasTrigger = ScriptApp.getProjectTriggers().some(function (t) {
     return t.getHandlerFunction() === 'mvAutoRefreshTick';
   });
   return hasTrigger ? 'hourly' : 'off';
@@ -205,9 +204,13 @@ function mvSearch(term, opts) {
  * Inserts formulas for a market at the active cell, then moves the
  * selection just below what was written so repeated inserts stack.
  *
+ * With info.withTitle, the market's question is written as plain text
+ * beside ('prob'/'sparkline': title left, value right) or above
+ * ('answers') the inserted formula. 'row' already includes the question.
+ *
  * @param {string} kind 'prob' | 'row' | 'answers' | 'sparkline'
  * @param {string} slug Market slug.
- * @param {Object} info {isBinary: boolean, url: string}
+ * @param {Object} info {isBinary: boolean, url: string, question: string, withTitle: boolean}
  * @return {string} A1 notation of where the insert landed.
  */
 function mvInsertMarket(kind, slug, info) {
@@ -215,11 +218,18 @@ function mvInsertMarket(kind, slug, info) {
   info = info || {};
   var sheet = SpreadsheetApp.getActiveSheet();
   var cell = sheet.getActiveCell();
+  var withTitle = !!info.withTitle && kind !== 'row';
+  var title = (info.question || slug).toString();
   var rowsUsed = 1;
 
   if (kind === 'prob') {
-    cell.setFormula('=MANIFOLD_PROB("' + slug + '")');
-    cell.setNumberFormat('0.0%');
+    var probCell = cell;
+    if (withTitle) {
+      cell.setValue(title);
+      probCell = cell.offset(0, 1);
+    }
+    probCell.setFormula('=MANIFOLD_PROB("' + slug + '")');
+    probCell.setNumberFormat('0.0%');
   } else if (kind === 'row') {
     var probFormula = info.isBinary
       ? '=MANIFOLD_PROB("' + slug + '")'
@@ -236,10 +246,21 @@ function mvInsertMarket(kind, slug, info) {
     if (info.isBinary) range.getCell(1, 2).setNumberFormat('0.0%');
     range.getCell(1, 4).setNumberFormat('yyyy-mm-dd');
   } else if (kind === 'answers') {
-    cell.setFormula('=MANIFOLD_ANSWERS("' + slug + '")');
-    rowsUsed = 2; // header + at least one answer; the spill handles the rest
+    var answersCell = cell;
+    if (withTitle) {
+      cell.setValue(title);
+      answersCell = cell.offset(1, 0);
+      rowsUsed = 1;
+    }
+    answersCell.setFormula('=MANIFOLD_ANSWERS("' + slug + '")');
+    rowsUsed += 2; // header + at least one answer; the spill handles the rest
   } else if (kind === 'sparkline') {
-    cell.setFormula('=SPARKLINE(MANIFOLD_HISTORY("' + slug + '"), {"charttype","line";"color","#4F46E5";"linewidth",2})');
+    var sparkCell = cell;
+    if (withTitle) {
+      cell.setValue(title);
+      sparkCell = cell.offset(0, 1);
+    }
+    sparkCell.setFormula('=SPARKLINE(MANIFOLD_HISTORY("' + slug + '"), {"charttype","line";"color","#4F46E5";"linewidth",2})');
   } else {
     throw new Error('Unknown insert kind: ' + kind);
   }
@@ -252,24 +273,36 @@ function mvInsertMarket(kind, slug, info) {
 /**
  * Inserts portfolio formulas for a username at the active cell.
  *
+ * With opts.withLabel, a "@username" line (linked to their profile) is
+ * written above the table so stacked portfolios stay identifiable.
+ *
  * @param {string} kind 'portfolio' | 'positions'
  * @param {string} username Manifold username.
+ * @param {Object} opts {withLabel: boolean}
  * @return {string} A1 notation of where the insert landed.
  */
-function mvInsertUser(kind, username) {
+function mvInsertUser(kind, username, opts) {
   var name = sanitizeForFormula_(parseUsername_(username));
+  opts = opts || {};
   var sheet = SpreadsheetApp.getActiveSheet();
   var cell = sheet.getActiveCell();
+  var formulaCell = cell;
+  var rowsUsed = 2;
 
+  if (opts.withLabel) {
+    cell.setFormula('=HYPERLINK("https://manifold.markets/' + name + '", "@' + name + '")');
+    formulaCell = cell.offset(1, 0);
+    rowsUsed = 3;
+  }
   if (kind === 'portfolio') {
-    cell.setFormula('=MANIFOLD_PORTFOLIO("' + name + '")');
+    formulaCell.setFormula('=MANIFOLD_PORTFOLIO("' + name + '")');
   } else if (kind === 'positions') {
-    cell.setFormula('=MANIFOLD_POSITIONS("' + name + '", 10)');
+    formulaCell.setFormula('=MANIFOLD_POSITIONS("' + name + '", 10)');
   } else {
     throw new Error('Unknown insert kind: ' + kind);
   }
   var landed = cell.getA1Notation();
-  sheet.setActiveSelection(cell.offset(2, 0, 1, 1));
+  sheet.setActiveSelection(cell.offset(rowsUsed, 0, 1, 1));
   return landed;
 }
 
