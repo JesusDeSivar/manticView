@@ -209,9 +209,8 @@
         <b>5 · Portfolio.</b> Load any Manifold username below, then insert their
         summary or top positions.<br><br>
         <b>6 · Stay fresh.</b> ↻ re-fetches every MANIFOLD formula now; the
-        <b>auto</b> menu keeps doing it in the background — every minute up to
-        daily — even with the sheet closed. (Every minute is heavy on your
-        Google quota; 10–30 min is plenty for most sheets.)<br><br>
+        <b>auto</b> menu keeps doing it in the background — every 5 minutes up to
+        daily — even with the sheet closed.<br><br>
         Full guide with pictures:
         <a href="https://jesusdesivar.github.io/manticView/sheets.html">the website</a>.
       </p>
@@ -224,6 +223,7 @@
       <div class="search-row">
         <input type="text" id="pf-user" placeholder="Manifold username…">
         <button class="btn" id="pf-go">Load</button>
+        <button class="btn ghost" id="pf-clear" title="Clear the portfolio">✕</button>
       </div>
       <div id="pf-out"></div>
     </div>
@@ -236,7 +236,6 @@
     <label class="auto" title="Background refresh cadence — runs even with the sheet closed">auto
       <select id="auto">
         <option value="off">off</option>
-        <option value="1m">1 min</option>
         <option value="5m">5 min</option>
         <option value="10m">10 min</option>
         <option value="30m">30 min</option>
@@ -248,7 +247,7 @@
   </div>
   <div class="links">
     <a href="https://jesusdesivar.github.io/manticView/sheets.html">Function guide</a> ·
-    <a href="https://manifold.markets">Manifold</a> · data refreshes every 5 min
+    <a href="https://manifold.markets">Manifold</a>
   </div>
 </div>
 
@@ -386,6 +385,11 @@
 
   $('pf-go').onclick = loadPortfolio;
   $('pf-user').addEventListener('keydown', function (e) { if (e.key === 'Enter') loadPortfolio(); });
+  $('pf-clear').onclick = function () {
+    $('pf-user').value = '';
+    $('pf-out').innerHTML = '';
+    $('pf-user').focus();
+  };
 
   function loadPortfolio() {
     var name = $('pf-user').value.trim();
@@ -464,7 +468,6 @@
 
   var autoLabels = {
     off: 'Auto-refresh is off.',
-    '1m': 'Auto-refresh: every minute. (Heavy on your Google quota — 10–30 min is plenty for most sheets.)',
     '5m': 'Auto-refresh: every 5 minutes.',
     '10m': 'Auto-refresh: every 10 minutes.',
     '30m': 'Auto-refresh: every 30 minutes.',

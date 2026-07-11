@@ -9,11 +9,11 @@
  *   Refresh markets now       — invalidates the cache and recalculates
  *                               every MANIFOLD formula in the spreadsheet
  *   Auto-refresh              — clock trigger for the same refresh, from
- *                               every minute up to daily
+ *                               every 5 minutes up to daily
  *   About ManticView          — credits and links
  */
 
-var MV_ADDON_VERSION = '1.2.0';
+var MV_ADDON_VERSION = '1.2.1';
 var MV_WEBSITE = 'https://jesusdesivar.github.io/manticView/';
 var MV_SIDEBAR_TITLE = 'ManticView';
 var MV_MAX_REFRESH_CELLS = 500;
@@ -33,7 +33,6 @@ function onOpen(e) {
     .addSeparator()
     .addItem('Refresh markets now', 'mvMenuRefresh')
     .addSubMenu(ui.createMenu('Auto-refresh')
-      .addItem('Every minute (heavy)', 'mvAutoRefresh1m')
       .addItem('Every 5 minutes', 'mvAutoRefresh5m')
       .addItem('Every 10 minutes', 'mvAutoRefresh10m')
       .addItem('Every 30 minutes', 'mvAutoRefresh30m')
@@ -130,7 +129,6 @@ function mvRefreshNow() {
  * only 1/5/10/15/30, everyHours only 1/2/4/6/8/12, plus everyDays.
  */
 var MV_REFRESH_MODES = {
-  '1m':  { label: 'every minute',     build: function (b) { return b.everyMinutes(1); } },
   '5m':  { label: 'every 5 minutes',  build: function (b) { return b.everyMinutes(5); } },
   '10m': { label: 'every 10 minutes', build: function (b) { return b.everyMinutes(10); } },
   '30m': { label: 'every 30 minutes', build: function (b) { return b.everyMinutes(30); } },
@@ -139,7 +137,6 @@ var MV_REFRESH_MODES = {
   '1d':  { label: 'once a day',       build: function (b) { return b.everyDays(1); } }
 };
 
-function mvAutoRefresh1m()  { mvMenuSetAutoRefresh('1m'); }
 function mvAutoRefresh5m()  { mvMenuSetAutoRefresh('5m'); }
 function mvAutoRefresh10m() { mvMenuSetAutoRefresh('10m'); }
 function mvAutoRefresh30m() { mvMenuSetAutoRefresh('30m'); }
@@ -151,8 +148,7 @@ function mvAutoRefreshOff() { mvMenuSetAutoRefresh('off'); }
 function mvMenuSetAutoRefresh(mode) {
   mvSetAutoRefresh(mode);
   var msg = MV_REFRESH_MODES[mode]
-    ? 'Manifold formulas will refresh ' + MV_REFRESH_MODES[mode].label + ', even with the sheet closed.' +
-      (mode === '1m' ? ' (Every minute uses a lot of your daily trigger quota.)' : '')
+    ? 'Manifold formulas will refresh ' + MV_REFRESH_MODES[mode].label + ', even with the sheet closed.'
     : 'Auto-refresh is off.';
   SpreadsheetApp.getActiveSpreadsheet().toast(msg, 'ManticView', 6);
 }
