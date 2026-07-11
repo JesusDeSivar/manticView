@@ -113,7 +113,7 @@
                         <p class="sheet-note">one formula, a whole table — recalculates in place</p>
                     </div>
                     <ol class="legend">
-                        <li><strong>Multiple-choice markets spill:</strong> one formula fills a two-column table, one row per answer, sorted the way the market lists them.</li>
+                        <li><strong>Multiple-choice markets spill:</strong> one formula fills a two-column table, one row per answer — sorted by probability (highest first) by default. Pass <code style="font-family:var(--mono);font-size:0.85em;">"alphabetical"</code> as the second argument to sort A→Z instead.</li>
                         <li><strong>Search without leaving the sheet:</strong> <code style="font-family:var(--mono);font-size:0.85em;">=MANIFOLD_SEARCH("bitcoin", 5)</code> spills matching markets — question, probability, slug, and URL — ready to feed into the other functions.</li>
                         <li><strong>Everything stays live.</strong> The spilled tables recalculate along with the rest of your spreadsheet.</li>
                     </ol>

@@ -75,23 +75,43 @@ function MANIFOLD(market, attribute, refresh) {
 
 /**
  * Returns the answers of a multiple-choice Manifold market as a table
- * with columns: Answer, Probability.
+ * with columns: Answer, Probability. Sorted by probability (highest
+ * first) by default.
  *
  * @param {string} market Market slug or full manifold.markets URL.
+ * @param {string} [sortBy] "probability" (default, highest first) or
+ *   "alphabetical" (A→Z by answer text). Aliases: "prob"/"p"/"desc" and
+ *   "alpha"/"az"/"name".
  * @param {*} [refresh] Optional. Any changing value to force a refresh.
  * @return {Array<Array>} One row per answer.
  * @customfunction
  */
-function MANIFOLD_ANSWERS(market, refresh) {
+function MANIFOLD_ANSWERS(market, sortBy, refresh) {
   var m = fetchMarket_(market);
+  var alphabetical = /^(alpha|alphabetical|az|a-z|name)$/i.test((sortBy || '').toString().trim());
+
   if (!m.answers || !m.answers.length) {
     if (typeof m.probability === 'number') {
       return [['Answer', 'Probability'], ['YES', m.probability], ['NO', 1 - m.probability]];
     }
     throw new Error('Market "' + m.question + '" has no answers.');
   }
+
+  var answers = m.answers.slice();
+  if (alphabetical) {
+    answers.sort(function (a, b) {
+      return (a.text || '').localeCompare(b.text || '');
+    });
+  } else {
+    answers.sort(function (a, b) {
+      var pa = typeof a.probability === 'number' ? a.probability : -1;
+      var pb = typeof b.probability === 'number' ? b.probability : -1;
+      return pb - pa;
+    });
+  }
+
   var rows = [['Answer', 'Probability']];
-  m.answers.forEach(function (a) {
+  answers.forEach(function (a) {
     rows.push([a.text, typeof a.probability === 'number' ? a.probability : '']);
   });
   return rows;
