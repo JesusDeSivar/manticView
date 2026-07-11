@@ -123,6 +123,14 @@
   .pos-row .val { font-family: var(--mono); font-size: 10.5px; color: var(--ink); }
   .row-btns { display: flex; gap: 6px; margin-top: 10px; }
 
+  /* refresh log */
+  .log-row { display: flex; align-items: baseline; gap: 8px; padding: 4px 2px; border-bottom: 1px dashed var(--border-soft); font-size: 11px; }
+  .log-row .src { font-family: var(--mono); font-size: 9px; letter-spacing: 0.06em; text-transform: uppercase; padding: 1px 6px; border-radius: 6px; }
+  .log-row .src.auto { color: var(--accent-deep); background: var(--accent-tint); }
+  .log-row .src.manual { color: var(--ink-muted); background: var(--surface-alt); }
+  .log-row .cnt { color: var(--ink); }
+  .log-row .when { margin-left: auto; font-family: var(--mono); font-size: 9.5px; color: var(--ink-muted); }
+
   /* refresh + footer */
   .foot { border-top: 1px solid var(--border-soft); padding: 10px 14px 12px; background: var(--bg); }
   .foot-row { display: flex; align-items: center; gap: 8px; }
@@ -210,7 +218,9 @@
         summary or top positions.<br><br>
         <b>6 · Stay fresh.</b> ↻ re-fetches every MANIFOLD formula now; the
         <b>auto</b> menu keeps doing it in the background — every 5 minutes up to
-        daily — even with the sheet closed.<br><br>
+        daily — even with the sheet closed. The <b>Refresh log</b> below records
+        each run (auto or manual) so you can confirm the background refresh is
+        working.<br><br>
         Full guide with pictures:
         <a href="https://jesusdesivar.github.io/manticView/sheets.html">the website</a>.
       </p>
@@ -226,6 +236,13 @@
         <button class="btn ghost" id="pf-clear" title="Clear the portfolio">✕</button>
       </div>
       <div id="pf-out"></div>
+    </div>
+  </details>
+
+  <details id="log">
+    <summary>Refresh log</summary>
+    <div class="sec-body">
+      <div id="log-out"><p class="hint" style="padding-top:2px;">No refreshes recorded yet.</p></div>
     </div>
   </details>
 </div>
@@ -451,6 +468,36 @@
     out.appendChild(btns);
   }
 
+  /* ---------- refresh log ---------- */
+
+  function whenStr(t) {
+    var d = new Date(t);
+    var mm = d.getUTCMonth() + 1, dd = d.getUTCDate();
+    var hh = ('0' + d.getUTCHours()).slice(-2), mi = ('0' + d.getUTCMinutes()).slice(-2);
+    return mm + '/' + dd + ' ' + hh + ':' + mi + ' UTC';
+  }
+  function renderLog(entries) {
+    var out = $('log-out');
+    out.innerHTML = '';
+    if (!entries || !entries.length) {
+      out.appendChild(el('p', 'hint', 'No refreshes recorded yet.'));
+      return;
+    }
+    entries.forEach(function (e) {
+      var row = el('div', 'log-row');
+      row.appendChild(el('span', 'src ' + (e.s === 'auto' ? 'auto' : 'manual'), e.s === 'auto' ? 'auto' : 'manual'));
+      row.appendChild(el('span', 'cnt', e.n + ' cell' + (e.n === 1 ? '' : 's')));
+      row.appendChild(el('span', 'when', whenStr(e.t)));
+      out.appendChild(row);
+    });
+  }
+  function reloadLog() {
+    google.script.run.withSuccessHandler(renderLog).mvGetRefreshLog();
+  }
+  // Refreshing the log itself is cheap; do it whenever the section is opened
+  // so an auto-refresh that fired while the sidebar was open shows up.
+  $('log').addEventListener('toggle', function () { if (this.open) reloadLog(); });
+
   /* ---------- refresh ---------- */
 
   $('refresh').onclick = function () {
@@ -461,6 +508,7 @@
       .withSuccessHandler(function (n) {
         b.disabled = false; b.textContent = '↻ Refresh formulas';
         toast(n ? 'Refreshed ' + n + ' formula cell' + (n === 1 ? '' : 's') + ' ✓' : 'No Manifold formulas found yet.');
+        reloadLog();
       })
       .withFailureHandler(function (e) { b.disabled = false; b.textContent = '↻ Refresh formulas'; fail(e); })
       .mvRefreshNow();
@@ -493,6 +541,7 @@
   google.script.run.withSuccessHandler(function (s) {
     $('auto').value = s.autoRefresh || 'off';
     autoPrev = $('auto').value;
+    renderLog(s.log);
   }).mvSidebarStatus();
 </script>
 </body>
