@@ -283,7 +283,11 @@ function MANIFOLD_POSITIONS(username, limit, refresh) {
         profit += num_(m.profit);
         if (num_(m.lastBetTime) > lastBet) lastBet = num_(m.lastBetTime);
       });
-      positions.push([c.question, value, profit, lastBet, c.url]);
+      var url = c.url ||
+        (c.creatorUsername && c.slug
+          ? 'https://manifold.markets/' + c.creatorUsername + '/' + c.slug
+          : '');
+      positions.push([c.question, value, profit, lastBet, url]);
     });
     positions.sort(function (a, b) { return b[1] - a[1]; });
     positions = positions.slice(0, n);
