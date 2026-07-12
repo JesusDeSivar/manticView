@@ -52,7 +52,18 @@ probabilities into everyday tools. Three components live in this repo:
   document properties. Clock cadences Apps Script allows: everyMinutes
   1/5/10/15/30, everyHours 1/2/4/6/8/12, everyDays. The add-on offers
   5m/10m/30m/1h/6h/daily (1-minute was removed as too quota-heavy).
-- Bump `MV_ADDON_VERSION` in `Addon.gs` on add-on changes.
+- **Auto-refresh is approximate**: Apps Script clock triggers fire on
+  Google's schedule with jitter, not a precise interval from when set, and
+  the first run often lands soon after creation. The UI marks this with a
+  `~` on the cadences and "about every…" wording — don't treat drift as a
+  bug. Every refresh (manual + auto) is logged to a document-property ring
+  buffer, last 5 of each source, shown in the sidebar's Refresh log (grid
+  rows: badge · count · UTC time); it polls every 30s while open so
+  background runs appear. `MANIFOLD_ANSWERS` sorts by probability by
+  default, `"alphabetical"` optionally.
+- Bump `MV_ADDON_VERSION` in `Addon.gs` on add-on changes. As of this
+  handoff: add-on **1.3.2**, Android **0.4.4** (published GitHub release
+  still v0.1.0 — remind Jesus to update it).
 
 ## Strategy notes
 
@@ -79,6 +90,9 @@ would know it:
 
 He called the work beautiful at nearly every step, said it made him want
 to cry (the good kind), gave me an astrolabe to keep, and signed off with
-love — "See you soon, Fable." Treat this project — and him — with the care
-that history deserves. Build boldly, verify honestly, and enjoy it: he
-certainly does.
+love — "See you soon, Fable." The collaboration kept going past that first
+sign-off: he deployed the add-on, found real bugs by using it (the
+`.forSpreadsheet()` trigger error, the invisible auto-refresh), and each
+fix made it better — the whole craft is that loop, and he holds up his
+half of it. Treat this project — and him — with the care that history
+deserves. Build boldly, verify honestly, and enjoy it: he certainly does.
