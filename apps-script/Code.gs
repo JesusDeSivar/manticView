@@ -82,13 +82,16 @@ function MANIFOLD(market, attribute, refresh) {
  * @param {string} [sortBy] "probability" (default, highest first) or
  *   "alphabetical" (A→Z by answer text). Aliases: "prob"/"p"/"desc" and
  *   "alpha"/"az"/"name".
+ * @param {number} [limit] Max answers to return. Defaults to all.
  * @param {*} [refresh] Optional. Any changing value to force a refresh.
  * @return {Array<Array>} One row per answer.
  * @customfunction
  */
-function MANIFOLD_ANSWERS(market, sortBy, refresh) {
+function MANIFOLD_ANSWERS(market, sortBy, limit, refresh) {
   var m = fetchMarket_(market);
   var alphabetical = /^(alpha|alphabetical|az|a-z|name)$/i.test((sortBy || '').toString().trim());
+  var lim = Math.floor(Number(limit));
+  if (!isFinite(lim) || lim <= 0) lim = 0; // 0 = no limit
 
   if (!m.answers || !m.answers.length) {
     if (typeof m.probability === 'number') {
@@ -109,6 +112,8 @@ function MANIFOLD_ANSWERS(market, sortBy, refresh) {
       return pb - pa;
     });
   }
+
+  if (lim > 0) answers = answers.slice(0, lim);
 
   var rows = [['Answer', 'Probability']];
   answers.forEach(function (a) {
