@@ -13,7 +13,7 @@
  *   About ManticView          — credits and links
  */
 
-var MV_ADDON_VERSION = '1.3.1';
+var MV_ADDON_VERSION = '1.3.2';
 var MV_WEBSITE = 'https://jesusdesivar.github.io/manticView/';
 var MV_SIDEBAR_TITLE = 'ManticView';
 var MV_MAX_REFRESH_CELLS = 500;
@@ -33,13 +33,13 @@ function onOpen(e) {
     .addItem('Search & insert markets…', 'mvShowSidebar')
     .addSeparator()
     .addItem('Refresh markets now', 'mvMenuRefresh')
-    .addSubMenu(ui.createMenu('Auto-refresh')
-      .addItem('Every 5 minutes', 'mvAutoRefresh5m')
-      .addItem('Every 10 minutes', 'mvAutoRefresh10m')
-      .addItem('Every 30 minutes', 'mvAutoRefresh30m')
-      .addItem('Every hour', 'mvAutoRefresh1h')
-      .addItem('Every 6 hours', 'mvAutoRefresh6h')
-      .addItem('Once a day', 'mvAutoRefresh1d')
+    .addSubMenu(ui.createMenu('Auto-refresh (approximate)')
+      .addItem('About every 5 minutes', 'mvAutoRefresh5m')
+      .addItem('About every 10 minutes', 'mvAutoRefresh10m')
+      .addItem('About every 30 minutes', 'mvAutoRefresh30m')
+      .addItem('About every hour', 'mvAutoRefresh1h')
+      .addItem('About every 6 hours', 'mvAutoRefresh6h')
+      .addItem('About once a day', 'mvAutoRefresh1d')
       .addItem('Off', 'mvAutoRefreshOff'))
     .addSeparator()
     .addItem('About ManticView', 'mvShowAbout')
@@ -180,13 +180,15 @@ function mvGetRefreshLog() {
  * Cadences Apps Script clock triggers can express: everyMinutes accepts
  * only 1/5/10/15/30, everyHours only 1/2/4/6/8/12, plus everyDays.
  */
+// Labels say "about every…" because Apps Script time-driven triggers fire on
+// Google's schedule with jitter — not a precise interval from when they're set.
 var MV_REFRESH_MODES = {
-  '5m':  { label: 'every 5 minutes',  build: function (b) { return b.everyMinutes(5); } },
-  '10m': { label: 'every 10 minutes', build: function (b) { return b.everyMinutes(10); } },
-  '30m': { label: 'every 30 minutes', build: function (b) { return b.everyMinutes(30); } },
-  '1h':  { label: 'every hour',       build: function (b) { return b.everyHours(1); } },
-  '6h':  { label: 'every 6 hours',    build: function (b) { return b.everyHours(6); } },
-  '1d':  { label: 'once a day',       build: function (b) { return b.everyDays(1); } }
+  '5m':  { label: 'about every 5 minutes',  build: function (b) { return b.everyMinutes(5); } },
+  '10m': { label: 'about every 10 minutes', build: function (b) { return b.everyMinutes(10); } },
+  '30m': { label: 'about every 30 minutes', build: function (b) { return b.everyMinutes(30); } },
+  '1h':  { label: 'about every hour',       build: function (b) { return b.everyHours(1); } },
+  '6h':  { label: 'about every 6 hours',    build: function (b) { return b.everyHours(6); } },
+  '1d':  { label: 'about once a day',       build: function (b) { return b.everyDays(1); } }
 };
 
 function mvAutoRefresh5m()  { mvMenuSetAutoRefresh('5m'); }
