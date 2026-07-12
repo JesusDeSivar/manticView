@@ -41,13 +41,14 @@ Any single attribute of a market. Defaults to `"probability"`.
 
 Supported attributes: `probability`, `question`, `url`, `closeTime`, `isResolved`, `resolution`, `volume`, `volume24Hours`, `totalLiquidity`, `uniqueBettorCount`, `outcomeType`, `creatorName`, `lastUpdatedTime`. Time attributes come back as real dates you can format and sort.
 
-### `MANIFOLD_ANSWERS(market, [sortBy])`
+### `MANIFOLD_ANSWERS(market, [sortBy], [limit])`
 
-For multiple-choice markets: spills a two-column table (Answer, Probability), one row per answer. Binary markets return YES/NO rows. Sorted by probability (highest first) by default; pass `"alphabetical"` to sort A→Z instead.
+For multiple-choice markets: spills a two-column table (Answer, Probability), one row per answer. Binary markets return YES/NO rows. Sorted by probability (highest first) by default; pass `"alphabetical"` to sort A→Z instead. `limit` caps how many answers are returned (after sorting) — omit it for all.
 
 ```
 =MANIFOLD_ANSWERS("who-will-win-the-2028-election")
 =MANIFOLD_ANSWERS("who-will-win-the-2028-election", "alphabetical")
+=MANIFOLD_ANSWERS("who-will-win-the-2028-election", "probability", 5)
 ```
 
 ### `MANIFOLD_SEARCH(term, [limit])`

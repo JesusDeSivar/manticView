@@ -20,7 +20,7 @@ inserts, portfolio tracking, and scheduled refresh.
 | --- | --- |
 | `MANIFOLD_PROB(market)` | Live probability of a binary market (0–1). |
 | `MANIFOLD(market, attribute)` | Any market attribute — `question`, `closeTime`, `volume24Hours`, `isResolved`, … |
-| `MANIFOLD_ANSWERS(market)` | Answers table for multiple-choice markets (spills). |
+| `MANIFOLD_ANSWERS(market, sortBy, limit)` | Answers table for multiple-choice markets (spills); optional sort and row limit. |
 | `MANIFOLD_SEARCH(term, limit)` | Search results table (spills). |
 | `MANIFOLD_HISTORY(market, points)` | Probability history as a column — wrap in `SPARKLINE()`. |
 | `MANIFOLD_USER(username, attribute)` | Any public attribute of a user — `balance` by default. |
