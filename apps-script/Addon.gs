@@ -13,11 +13,11 @@
  *   About ManticView          — credits and links
  */
 
-var MV_ADDON_VERSION = '1.3.0';
+var MV_ADDON_VERSION = '1.3.1';
 var MV_WEBSITE = 'https://jesusdesivar.github.io/manticView/';
 var MV_SIDEBAR_TITLE = 'ManticView';
 var MV_MAX_REFRESH_CELLS = 500;
-var MV_LOG_MAX = 12;
+var MV_LOG_PER_SOURCE = 5;
 
 /* ------------------------------------------------------------------ */
 /* Lifecycle & menu                                                    */
@@ -131,10 +131,12 @@ function mvRefreshNow(source) {
 /* ------------------------------------------------------------------ */
 
 /**
- * Appends a refresh event to a small ring buffer in document properties,
- * newest first, capped at MV_LOG_MAX. Gives auto-refresh a visible trace
- * since it fires in the background with no toast. Never throws — logging
- * must not break a refresh.
+ * Appends a refresh event to a log in document properties, newest first,
+ * keeping the most recent MV_LOG_PER_SOURCE of each source. Capping per
+ * source (rather than a single total) guarantees the last few auto-refreshes
+ * are always visible even after a burst of manual refreshes — the whole
+ * point, since auto-refresh fires in the background with no toast. Never
+ * throws — logging must not break a refresh.
  *
  * @param {number} count Cells recalculated.
  * @param {string} source 'auto' or 'manual'.
@@ -143,8 +145,15 @@ function mvLogRefresh_(count, source) {
   try {
     var props = PropertiesService.getDocumentProperties();
     var log = JSON.parse(props.getProperty('mv:refreshlog') || '[]');
-    log.unshift({ t: Date.now(), n: count, s: source });
-    if (log.length > MV_LOG_MAX) log = log.slice(0, MV_LOG_MAX);
+    log.unshift({ t: Date.now(), n: count, s: source === 'auto' ? 'auto' : 'manual' });
+    // log stays newest-first, so filtering keeps the newest of each source.
+    var kept = { auto: 0, manual: 0 };
+    log = log.filter(function (e) {
+      var k = e.s === 'auto' ? 'auto' : 'manual';
+      if (kept[k] >= MV_LOG_PER_SOURCE) return false;
+      kept[k]++;
+      return true;
+    });
     props.setProperty('mv:refreshlog', JSON.stringify(log));
   } catch (err) {
     console.error('ManticView log write failed: ' + err);

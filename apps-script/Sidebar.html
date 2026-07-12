@@ -124,12 +124,14 @@
   .row-btns { display: flex; gap: 6px; margin-top: 10px; }
 
   /* refresh log */
-  .log-row { display: flex; align-items: baseline; gap: 8px; padding: 4px 2px; border-bottom: 1px dashed var(--border-soft); font-size: 11px; }
-  .log-row .src { font-family: var(--mono); font-size: 9px; letter-spacing: 0.06em; text-transform: uppercase; padding: 1px 6px; border-radius: 6px; }
+  /* grid so the count column starts at the same x on every row, whichever
+     source badge (auto/manual) precedes it */
+  .log-row { display: grid; grid-template-columns: 52px 1fr auto; align-items: center; gap: 8px; padding: 4px 2px; border-bottom: 1px dashed var(--border-soft); font-size: 11px; }
+  .log-row .src { text-align: center; font-family: var(--mono); font-size: 9px; letter-spacing: 0.06em; text-transform: uppercase; padding: 2px 0; border-radius: 6px; }
   .log-row .src.auto { color: var(--accent-deep); background: var(--accent-tint); }
   .log-row .src.manual { color: var(--ink-muted); background: var(--surface-alt); }
   .log-row .cnt { color: var(--ink); }
-  .log-row .when { margin-left: auto; font-family: var(--mono); font-size: 9.5px; color: var(--ink-muted); }
+  .log-row .when { justify-self: end; font-family: var(--mono); font-size: 9.5px; color: var(--ink-muted); }
 
   /* refresh + footer */
   .foot { border-top: 1px solid var(--border-soft); padding: 10px 14px 12px; background: var(--bg); }
@@ -242,6 +244,10 @@
   <details id="log">
     <summary>Refresh log</summary>
     <div class="sec-body">
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
+        <span style="font-size:10px;color:var(--ink-muted);">last 5 of each · times in UTC</span>
+        <button class="btn ghost" id="log-reload" style="margin-left:auto;padding:3px 9px;" title="Reload the log">↻</button>
+      </div>
       <div id="log-out"><p class="hint" style="padding-top:2px;">No refreshes recorded yet.</p></div>
     </div>
   </details>
@@ -494,9 +500,13 @@
   function reloadLog() {
     google.script.run.withSuccessHandler(renderLog).mvGetRefreshLog();
   }
-  // Refreshing the log itself is cheap; do it whenever the section is opened
-  // so an auto-refresh that fired while the sidebar was open shows up.
+  // Reloading the log is cheap (a single doc-property read). Reload when the
+  // section is opened, on demand via its ↻, and — crucially — on a poll while
+  // it stays open, so an auto-refresh firing in the background appears without
+  // the user having to close and reopen it.
   $('log').addEventListener('toggle', function () { if (this.open) reloadLog(); });
+  $('log-reload').onclick = function (e) { e.preventDefault(); reloadLog(); };
+  setInterval(function () { if ($('log').open) reloadLog(); }, 30000);
 
   /* ---------- refresh ---------- */
 
