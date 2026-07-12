@@ -13,7 +13,7 @@
  *   About ManticView          — credits and links
  */
 
-var MV_ADDON_VERSION = '1.3.2';
+var MV_ADDON_VERSION = '1.3.3';
 var MV_WEBSITE = 'https://jesusdesivar.github.io/manticView/';
 var MV_SIDEBAR_TITLE = 'ManticView';
 var MV_MAX_REFRESH_CELLS = 500;
