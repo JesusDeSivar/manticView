@@ -2,7 +2,7 @@
 
 Bring [Manifold](https://manifold.markets) prediction markets directly into Google Sheets.
 
-Mantic View is a [Google Apps Script project](apps-script/) that adds custom functions to your spreadsheet — and, deployed as an editor add-on, a search-and-insert sidebar, portfolio tracking, and scheduled refresh — powered by the free, no-key-required [Manifold API](https://docs.manifold.markets/api). See [`apps-script/README.md`](apps-script/README.md) for the add-on details and the Google Workspace Marketplace publishing guide.
+Mantic View is a [Google Apps Script project](apps-script/) that adds custom functions to your spreadsheet — and, deployed as an editor add-on, a search-and-insert sidebar, portfolio tracking, and scheduled refresh — powered by the free, no-key-required [Manifold API](https://docs.manifold.markets/api). See [`apps-script/README.md`](apps-script/README.md) for the add-on details.
 
 Also in this repo: **[Mantic View for Android](android/)** — a home-screen widget with a TradingView-style watchlist of live market probabilities.
 
@@ -41,12 +41,13 @@ Any single attribute of a market. Defaults to `"probability"`.
 
 Supported attributes: `probability`, `question`, `url`, `closeTime`, `isResolved`, `resolution`, `volume`, `volume24Hours`, `totalLiquidity`, `uniqueBettorCount`, `outcomeType`, `creatorName`, `lastUpdatedTime`. Time attributes come back as real dates you can format and sort.
 
-### `MANIFOLD_ANSWERS(market)`
+### `MANIFOLD_ANSWERS(market, [sortBy])`
 
-For multiple-choice markets: spills a two-column table (Answer, Probability), one row per answer. Binary markets return YES/NO rows.
+For multiple-choice markets: spills a two-column table (Answer, Probability), one row per answer. Binary markets return YES/NO rows. Sorted by probability (highest first) by default; pass `"alphabetical"` to sort A→Z instead.
 
 ```
 =MANIFOLD_ANSWERS("who-will-win-the-2028-election")
+=MANIFOLD_ANSWERS("who-will-win-the-2028-election", "alphabetical")
 ```
 
 ### `MANIFOLD_SEARCH(term, [limit])`
@@ -97,7 +98,7 @@ Results are cached for 5 minutes to stay within Manifold's rate limits. Google S
 =MANIFOLD_PROB("will-ai-achieve-agi-by-2030", $A$1)   // where A1 = NOW()
 ```
 
-With the full add-on installed, **Extensions → ManticView → Refresh markets now** re-fetches every `MANIFOLD*` formula in the spreadsheet at once, and **Auto-refresh → Every hour** keeps doing so on a schedule — even while the sheet is closed.
+With the full add-on installed, **Extensions → ManticView → Refresh markets now** re-fetches every `MANIFOLD*` formula in the spreadsheet at once, and **Auto-refresh** keeps doing so on a schedule you pick — from about every 5 minutes up to once a day — even while the sheet is closed. (These run on Google's clock triggers, so they fire *about* that often, not on a precise interval; the sidebar's Refresh log records each run.)
 
 ## Notes
 
