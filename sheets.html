@@ -189,7 +189,7 @@
                     </div>
                     <ol class="legend">
                         <li><strong>Results are cached for five minutes</strong> to stay friendly to Manifold's free API — plenty fresh for prediction markets.</li>
-                        <li><strong>Sheets also caches custom functions,</strong> so to force a refetch, pass any changing value as the last argument — a cell containing <code style="font-family:var(--mono);font-size:0.85em;">=NOW()</code> works perfectly. With the add-on installed, <strong>Extensions → ManticView → Refresh markets now</strong> does it for every formula at once, and auto-refresh can repeat it on the cadence you choose — from every 5 minutes to once a day — even with the sheet closed.</li>
+                        <li><strong>Sheets also caches custom functions,</strong> so to force a refetch, pass any changing value as the last argument — a cell containing <code style="font-family:var(--mono);font-size:0.85em;">=NOW()</code> works perfectly. With the add-on installed, <strong>Extensions → ManticView → Refresh markets now</strong> does it for every formula at once, and auto-refresh can repeat it on the cadence you choose — from ~5 minutes to once a day — even with the sheet closed. These run on Google's schedule, so they fire <em>about</em> that often (hence the <code style="font-family:var(--mono);font-size:0.85em;">~</code>), not exactly from the moment you set them; the sidebar's Refresh log shows each run so you can confirm it's working.</li>
                         <li><strong>No key, no quota to manage:</strong> the functions read Manifold's public API anonymously.</li>
                     </ol>
                 </div>

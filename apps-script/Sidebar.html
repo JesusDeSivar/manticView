@@ -219,10 +219,11 @@
         <b>5 · Portfolio.</b> Load any Manifold username below, then insert their
         summary or top positions.<br><br>
         <b>6 · Stay fresh.</b> ↻ re-fetches every MANIFOLD formula now; the
-        <b>auto</b> menu keeps doing it in the background — every 5 minutes up to
-        daily — even with the sheet closed. The <b>Refresh log</b> below records
-        each run (auto or manual) so you can confirm the background refresh is
-        working.<br><br>
+        <b>auto</b> menu keeps doing it in the background — from ~5 minutes up to
+        daily — even with the sheet closed. Google schedules these, so they run
+        <i>about</i> that often (the <b>~</b>), not exactly from when you set
+        them. The <b>Refresh log</b> below records each run (auto or manual) so
+        you can confirm it's working.<br><br>
         Full guide with pictures:
         <a href="https://jesusdesivar.github.io/manticView/sheets.html">the website</a>.
       </p>
@@ -256,14 +257,14 @@
 <div class="foot">
   <div class="foot-row">
     <button class="btn ghost" id="refresh">↻ Refresh formulas</button>
-    <label class="auto" title="Background refresh cadence — runs even with the sheet closed">auto
+    <label class="auto" title="Background refresh cadence — Google runs it about this often (not exactly from when you set it), even with the sheet closed. ~ means approximate.">auto
       <select id="auto">
         <option value="off">off</option>
-        <option value="5m">5 min</option>
-        <option value="10m">10 min</option>
-        <option value="30m">30 min</option>
-        <option value="1h">1 hour</option>
-        <option value="6h">6 hours</option>
+        <option value="5m">~5 min</option>
+        <option value="10m">~10 min</option>
+        <option value="30m">~30 min</option>
+        <option value="1h">~1 hour</option>
+        <option value="6h">~6 hours</option>
         <option value="1d">daily</option>
       </select>
     </label>
@@ -526,12 +527,12 @@
 
   var autoLabels = {
     off: 'Auto-refresh is off.',
-    '5m': 'Auto-refresh: every 5 minutes.',
-    '10m': 'Auto-refresh: every 10 minutes.',
-    '30m': 'Auto-refresh: every 30 minutes.',
-    '1h': 'Auto-refresh: every hour.',
-    '6h': 'Auto-refresh: every 6 hours.',
-    '1d': 'Auto-refresh: once a day.'
+    '5m': 'Auto-refresh: about every 5 minutes (Google’s schedule).',
+    '10m': 'Auto-refresh: about every 10 minutes (Google’s schedule).',
+    '30m': 'Auto-refresh: about every 30 minutes (Google’s schedule).',
+    '1h': 'Auto-refresh: about every hour (Google’s schedule).',
+    '6h': 'Auto-refresh: about every 6 hours (Google’s schedule).',
+    '1d': 'Auto-refresh: about once a day (Google’s schedule).'
   };
   var autoPrev = 'off';
   $('auto').onchange = function () {
