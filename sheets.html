@@ -37,6 +37,34 @@
 
         <section class="guide-section">
             <div class="container">
+                <span class="step-label">Quick start · three steps</span>
+                <h2>From zero to a live probability</h2>
+                <p class="intro">The whole loop takes about a minute. Do these three things and you're running; the walkthrough below goes deeper on each function when you want it.</p>
+                <div class="quickstart">
+                    <div class="qs-step">
+                        <span class="qs-n">1</span>
+                        <h3>Get the functions</h3>
+                        <p>Make a copy of the <a href="https://docs.google.com/spreadsheets/d/12rJBxcCn_i61uprzuQWXj5mz9BC8aYIlU7NlQszuqZ0/edit?usp=sharing">ready-made template</a> (<strong>File → Make a copy</strong>), or paste <a href="https://github.com/JesusDeSivar/manticView/blob/main/apps-script/Code.gs"><code>Code.gs</code></a> into <strong>Extensions → Apps Script</strong> and save.</p>
+                        <p class="qs-note">no API key · no login</p>
+                    </div>
+                    <div class="qs-step">
+                        <span class="qs-n">2</span>
+                        <h3>Type a formula</h3>
+                        <p>In any cell, start typing <code>=MANIFOLD</code> and pick one from autocomplete. Pass a market <strong>slug</strong> or its full URL.</p>
+                        <div class="qs-formula">=MANIFOLD_PROB("will-x-happen-by-2030")</div>
+                    </div>
+                    <div class="qs-step">
+                        <span class="qs-n">3</span>
+                        <h3>Format &amp; keep it live</h3>
+                        <p>Format the cell as a percentage to read <code>72%</code>. To refresh, pass a cell holding <code>=NOW()</code> as the last argument — or use the add-on's auto-refresh.</p>
+                        <div class="qs-formula">=MANIFOLD_PROB("will-x…", $A$1)</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="guide-section">
+            <div class="container">
                 <span class="step-label">Step 1 · Setup — about one minute</span>
                 <h2>Get the functions into your spreadsheet</h2>
                 <p class="intro">The easy way: make a copy of the <a href="https://docs.google.com/spreadsheets/d/12rJBxcCn_i61uprzuQWXj5mz9BC8aYIlU7NlQszuqZ0/edit?usp=sharing">ready-made template</a> (<strong>File → Make a copy</strong>) — the functions come with it. Or add them to any existing spreadsheet: open <strong>Extensions → Apps Script</strong>, replace the placeholder with the contents of <a href="https://github.com/JesusDeSivar/manticView/blob/main/apps-script/Code.gs"><code style="font-family:var(--mono);font-size:0.85em;">Code.gs</code></a>, and save. No authorization prompts, no API key. For the full add-on — search sidebar, one-click inserts, auto-refresh — add the <a href="https://github.com/JesusDeSivar/manticView/tree/main/apps-script">three companion files</a> too, or wait for the Google Workspace Marketplace listing, coming soon.</p>
