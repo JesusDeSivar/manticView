@@ -1,0 +1,63 @@
+name: Deploy site to GitHub Pages
+
+# Publishes the static site (HTML + assets) to GitHub Pages, served at the
+# custom subdomain defined in the repo-root CNAME file (manticview.anticarbon.me).
+# Source-only folders (android/, apps-script/) are intentionally left out of the
+# published site.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Least-privilege permissions required by the Pages deployment.
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Allow one concurrent deployment; newer pushes cancel in-progress runs.
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Assemble published site
+        run: |
+          mkdir -p _site
+          rsync -a \
+            --exclude '.git' \
+            --exclude '.github' \
+            --exclude '_site' \
+            --exclude 'android' \
+            --exclude 'apps-script' \
+            --exclude 'CONTRIBUTING.md' \
+            --exclude 'DEPLOY.md' \
+            --exclude 'README.md' \
+            --exclude '.gitignore' \
+            ./ _site/
+          # Preserve the custom domain and skip Jekyll processing.
+          cp CNAME _site/CNAME
+          touch _site/.nojekyll
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
